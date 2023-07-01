@@ -1,14 +1,14 @@
-unit AuthenticationHandlerU;
+unit AuthCriteriaU;
 
 interface
 
 uses
   System.Generics.Collections,
-  MVCFramework,
-  MVCFramework.Commons;
+  MVCFramework, PrivateControllerU;
 
 type
-  IMVCAuthenticationHandler = interface
+  TAuthCriteria = class(TInterfacedObject, IMVCAuthenticationHandler)
+  public
     procedure OnRequest(const AContext: TWebContext;
       const AControllerQualifiedClassName, AActionName: string;
       var AAuthenticationRequired: Boolean);
@@ -17,35 +17,39 @@ type
       const ASessionData: TDictionary<string, string>);
     procedure OnAuthorization(const AContext: TWebContext;
       AUserRoles: TList<string>; const AControllerQualifiedClassName: string;
-      const AActionName: string; var AIsAuthhorized: Boolean);
+      const AActionName: string; var AIsAuthorized: Boolean);
  end;
 
 implementation
 
-procedure OnRequest(const AContext: TWebContext;
+procedure TAuthCriteria.OnRequest(const AContext: TWebContext;
   const AControllerQualifiedClassName, AActionName: string;
   var AAuthenticationRequired: Boolean);
 begin
   AAuthenticationRequired :=  AControllerQualifiedClassName =
-    'AdminControllerU.TAdminController'
+    TPrivateController.QualifiedClassName;
 end;
 
-procedure OnAuthentication(const AContext: TWebContext; const AUserName,
+procedure TAuthCriteria.OnAuthentication(const AContext: TWebContext; const AUserName,
   APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean;
   const ASessionData: TDictionary<string, string>);
 begin
-  AIsValid := AUserName = APassword;
+  AIsValid := APassword = ('pwd' + AUserName);
   if not AIsValid then
     Exit;
   if AUserName = 'user1' then
     AUserRoles.Add('role1')
   else if AUserName = 'user2' then
     AUserRoles.Add('role2')
-  else
-    AIsValid := False;
+  else if AUserName = 'user3' then
+  begin
+    AUserRoles.Add('role1');
+    AUserRoles.Add('role2');
+  end;
+  AIsValid := AUserRoles.Count > 0;
 end;
 
-procedure OnAuthorization(const AContext: TWebContext;
+procedure TAuthCriteria.OnAuthorization(const AContext: TWebContext;
   AUserRoles: TList<string>; const AControllerQualifiedClassName: string;
   const AActionName: string; var AIsAuthorized: Boolean);
 begin
