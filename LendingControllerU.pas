@@ -13,32 +13,32 @@ type
   TLendingController = class(TBaseController)
   public
     [MVCPath]
-    [MVCDoc('It returns all lendings for all customers.')]
+    [MVCSwagSummary('Lending', 'It returns all lendings for all customers.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetLendings;
 
     [MVCPath('customers/($CustomerID)')]
-    [MVCDoc('It returns the list of all lendings for a customer.')]
+    [MVCSwagSummary('Lending', 'It returns the list of all lendings for a customer.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetLendingsByCustomerID(const CustomerID: Integer);
 
     [MVCPath('books/($BookID)')]
-    [MVCDoc('It returns all the lendings for a specified book.')]
+    [MVCSwagSummary('Lending', 'It returns all the lendings for a specified book.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetLendingHistoryByBookID(const BookID: Integer);
 
     [MVCPath('customers/($CustomerID)')]
-    [MVCDoc('It creates a new lending for a customer about a book.')]
+    [MVCSwagSummary('Lending', 'It creates a new lending for a customer about a book.')]
     [MVCHTTPMethod([httpPOST])]
-    procedure CreateLending;
+    procedure CreateLending(const CustomerID: Integer);
 
     [MVCPath('/($LendingID)')]
-    [MVCDoc('It updates lending information.')]
+    [MVCSwagSummary('Lending', 'It updates lending information.')]
     [MVCHTTPMethod([httpPUT])]
     procedure UpdateLendingByID(const LendingID: Integer);
 
     [MVCPath('/terminated/($LendingID)')]
-    [MVCDoc('It terminates a lending.')]
+    [MVCSwagSummary('Lending', 'It terminates a lending.')]
     [MVCHTTPMethod([httpPOST])]
     procedure TerminateLending(const LendingID: Integer);
   end;
@@ -46,13 +46,28 @@ type
 implementation
 
 { TLendingController }
-procedure TLendingController.CreateLending;
+procedure TLendingController.CreateLending(const CustomerID: Integer);
 var
+  lUserID: string;
   lLending: TLending;
 begin
   lLending := Context.Request.BodyAs<TLending>;
   try
-    lLending.Insert;
+    if not Context.LoggedUser.CustomData.TryGetValue('user_id', lUserID) then
+    begin
+      raise EMVCException.Create('UserID not found in custome data');
+    end;
+
+    lLending.LendingStartUserID := lUserID.ToInt64;
+    lLending.LendingStart := Now;
+    lLending.LendingEnd.Clear;
+    lLending.CustomerID := CustomerID;
+
+    try
+      lLending.Insert;
+    except
+
+    end;
     Render201Created('/api/lendings/' + lLending.ID.ToString);
   finally
     lLending.Free;
@@ -157,20 +172,23 @@ end;
 procedure TLendingController.TerminateLending(const LendingID: Integer);
 var
   lLending: TLending;
+  lUserID: string;
 begin
   lLending := TMVCActiveRecord.GetByPK<TLending>(LendingID);
   try
+    if not Context.LoggedUser.CustomData.TryGetValue('user_id', lUserID) then
+    begin
+      raise EMVCException.Create('UserID not found in custom data');
+    end;
+
     if lLending.LendingEnd.HasValue then
     begin
       raise EMVCException.Create(HTTP_STATUS.BadRequest,
         'Lending already terminated');
     end;
+
     lLending.LendingEnd := Now;
-    {"LendingEndUserID" should be logged user which terminated
-    the lending (the operator of the municipal library). However
-    we still don't have the authentication in place, so at this time,
-    we will write just 1 as LendingEndUserID}
-    lLending.LendingEndUserID := 1;
+    lLending.LendingEndUserID := lUserID.ToInt64;
     lLending.Update;
     Render204NoContent('/api/lendings/' + LendingID.ToString,
       'Lending Terminated Correctly');

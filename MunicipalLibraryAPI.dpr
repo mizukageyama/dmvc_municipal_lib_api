@@ -21,11 +21,9 @@ uses
   CommonsU in 'CommonsU.pas',
   LendingControllerU in 'LendingControllerU.pas',
   UserControllerU in 'UserControllerU.pas',
-  AuthServiceU in 'https_basic_authentication\AuthServiceU.pas',
+  AuthServiceU in 'AuthServiceU.pas',
   BookControllerU in 'BookControllerU.pas',
-  AuthCriteriaU in 'jwt_authentication\AuthCriteriaU.pas',
-  PrivateControllerU in 'PrivateControllerU.pas',
-  PublicControllerU in 'PublicControllerU.pas';
+  AuthCriteriaU in 'jwt_authentication\AuthCriteriaU.pas';
 
 {$R *.res}
 

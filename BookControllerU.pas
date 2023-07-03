@@ -11,29 +11,29 @@ type
   TBookController = class(TBaseController)
   public
     [MVCPath]
-    [MVCDoc('It returns list of all books. It allows to apply a filter.')]
+    [MVCSwagSummary('Book', 'It returns list of all books. It allows to apply a filter.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetBooks;
 
     [MVCPath('/($BookID)')]
-    [MVCDoc('It returns a single book with a ref link to its author and the '+
+    [MVCSwagSummary('Book', 'It returns a single book with a ref link to its author and the '+
       'story of its lending.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetBookById(BookID: Integer);
 
     [MVCPath]
-    [MVCDoc('It creates a new book and returns the URI to find it in the ' +
+    [MVCSwagSummary('Book', 'It creates a new book and returns the URI to find it in the ' +
       'Location HTTP header.')]
     [MVCHTTPMethod([httpPOST])]
     procedure CreateBook;
 
     [MVCPath('/($BookID)')]
-    [MVCDoc('It updates book information using its book ID.')]
+    [MVCSwagSummary('Book', 'It updates book information using its book ID.')]
     [MVCHTTPMethod([httpPUT])]
     procedure UpdateBookById(BookID: Integer);
 
     [MVCPath('/($BookID)')]
-    [MVCDoc('It deletes book information using its book ID.')]
+    [MVCSwagSummary('Book', 'It deletes book information using its book ID.')]
     [MVCHTTPMethod([httpDELETE])]
     procedure DeleteBookById(BookID: Integer);
   end;

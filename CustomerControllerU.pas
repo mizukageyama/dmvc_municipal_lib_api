@@ -12,35 +12,35 @@ type
   [MVCPath('/api/customers')]
   TCustomerController = class(TBaseController)
   public
-    [MVCPath] { DONE }
-    [MVCDoc('It returns the list of all the customers with a ref link to ' +
+    [MVCPath]
+    [MVCSwagSummary('Customer', 'It returns the list of all the customers with a ref link to ' +
       'get all lendings for each customer.')]
     [MVCHTTPMethod([httpGET])]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetCustomers;
 
-    [MVCPath('/($CustomerID)')] { DONE }
-    [MVCDoc('It returns a single customer with a ref link to its borrowings.')]
+    [MVCPath('/($CustomerID)')]
+    [MVCSwagSummary('Customer', 'It returns a single customer with a ref link to its borrowings.')]
     [MVCHTTPMethod([httpGET])]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetCustomerByID(const CustomerID: Integer);
 
     [MVCPath]
-    [MVCDoc('It creates a new customer and return its customer URI in the ' +
+    [MVCSwagSummary('Customer', 'It creates a new customer and return its customer URI in the ' +
       'Location HTTP header.')]
     [MVCHTTPMethod([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure CreateCustomers;
 
     [MVCPath('/($CustomerID)')]
-    [MVCDoc('It updates a customer using its customer ID.')]
+    [MVCSwagSummary('Customer', 'It updates a customer using its customer ID.')]
     [MVCHTTPMethod([httpPUT])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure UpdateCustomerByID(const CustomerID: Integer);
 
     [MVCPath('/($CustomerID)')]
-    [MVCDoc('It deletes a customer using its customer ID.')]
+    [MVCSwagSummary('Customer', 'It deletes a customer using its customer ID.')]
     [MVCHTTPMethod([httpDELETE])]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure DeleteCustomerByID(const CustomerID: Integer);

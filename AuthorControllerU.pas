@@ -4,42 +4,44 @@ interface
 
 uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
-  MVCFramework.ActiveRecord, BaseControllerU;
+  EntitiesU, MVCFramework.ActiveRecord, BaseControllerU,  System.JSON,
+  MVCFramework.Swagger.Commons;
 
 type
   [MVCPath('/api/authors')]
   TAuthorController = class(TBaseController)
   public
-    [MVCPath] { DONE }
-    [MVCDoc('It returns all the authors with some information about the ' +
+    [MVCPath]
+    [MVCSwagSummary('Author', 'It returns all the authors with some information about the ' +
       'books written by each of then and reference links to get the full ' +
       'book data. It allows filter.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetAuthors;
 
-    [MVCPath('/($AuthorID)')] { DONE }
-    [MVCDoc('It returns a single author using its author ID.')]
+    [MVCPath('/($AuthorID)')]
+    [MVCSwagSummary('Author', 'It returns a single author using its author ID.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetAuthorByID(const AuthorID: Integer);
 
     [MVCPath('/($AuthorID)/books')]
-    [MVCDoc('It returns all the books written by an author.')]
+    [MVCSwagSummary('Author', 'It returns all the books written by an author.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetBooksByAuthorID(const AuthorID: Integer);
 
     [MVCPath]
-    [MVCDoc('It creates a new author and returns the new author URI ' +
+    [MVCSwagSummary('Author', 'It creates a new author and returns the new author URI ' +
       'in the Location HTTP header')]
     [MVCHTTPMethod([httpPOST])]
+    [MVCSwagParam(plBody, 'body', 'Author data', TAuthor)]
     procedure CreateAuthor;
 
     [MVCPath('/($AuthorID)')]
-    [MVCDoc('It updates author using its author ID.')]
+    [MVCSwagSummary('Author', 'It updates author using its author ID.')]
     [MVCHTTPMethod([httpPUT])]
     procedure UpdateAuthorByID(const AuthorID: Integer);
 
     [MVCPath('/($AuthorID)')]
-    [MVCDoc('It deletes author using its author ID.')]
+    [MVCSwagSummary('Author', 'It deletes author using its author ID.')]
     [MVCHTTPMethod([httpDELETE])]
     procedure DeleteAuthorByID(const AuthorID: Integer);
   end;
@@ -47,7 +49,7 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Logger, System.StrUtils, EntitiesU,
+  System.SysUtils, MVCFramework.Logger, System.StrUtils,
   System.Math, CommonsU, System.Generics.Collections;
 
 { TAuthorController }

@@ -40,12 +40,14 @@ uses
   MVCFramework.Middleware.Analytics,
   MVCFramework.Middleware.Trace, 
   MVCFramework.Middleware.CORS, 
-  MVCFramework.Middleware.ETag, 
+  MVCFramework.Middleware.ETag, MVCFramework.Swagger.Commons,
   MVCFramework.Middleware.Compression, AuthorControllerU, LendingControllerU,
   UserControllerU, BookControllerU, AuthCriteriaU, PrivateControllerU,
-  PublicControllerU;
+  PublicControllerU, MVCFramework.Crypt.Utils, MVCFramework.Middleware.Swagger;
 
 procedure TMunicipalLibraryWebModule.WebModuleCreate(Sender: TObject);
+var
+  lSwagInfo: TMVCSwaggerInfo;
 begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
@@ -74,28 +76,32 @@ begin
       Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
     end);
 
-  { /api/books endpoint }
   FMVC.AddController(TBookController);
-
-  { /api/customers endpoint }
   FMVC.AddController(TCustomerController);
-
-  { /api/authors endpoint }
   FMVC.AddController(TAuthorController);
-
-  { /api/lendings endpoint }
   FMVC.AddController(TLendingController);
-
-  { /api/users endpoint }
   FMVC.AddController(TUserController);
 
-  {private and public controllers}
-  FMVC.AddController(TPublicController);
-  FMVC.AddController(TPrivateController);
+  lSwagInfo.Title := 'Sample Swagger API';
+  lSwagInfo.Version := 'v1';
+  lSwagInfo.TermsOfService := 'http://www.apache.org/licenses/LICENSE-2.0.txt';
+  lSwagInfo.Description := 'Swagger Documentation Example';
+  lSwagInfo.ContactName := 'DelphiMVCFramework Team';
+  lSwagInfo.ContactEmail := 'contactmail@dmvc.com';
+  lSwagInfo.ContactUrl := 'https://github.com/danieleteti/delphimvcframework';
+  lSwagInfo.LicenseName := 'Apache License - Version 2.0, January 2004';
+  lSwagInfo.LicenseUrl := 'http://www.apache.org/licenses/LICENSE-2.0';
+
+  FMVC.AddMiddleWare(TMVCSwaggerMiddleware.Create(FMVC, lSwagInfo,
+    '/api/swagger.json'));
+
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/swagger',
+    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)),
+    '..\..\swagger-ui')));
 
   var lConfigClaims: TJWTClaimsSetup := procedure (const JWT: TJWT)
     begin
-      JWT.Claims.Issuer := 'DMVCFramework JWT Authority';
+      JWT.Claims.Issuer := 'Municipal Library';
       //JWT will expire in 1 hour
       JWT.Claims.ExpirationTime := Now + EncodeTime(1, 0, 0, 0);
       JWT.Claims.NotBefore := Now - EncodeTime(0, 5, 0, 0);
@@ -111,6 +117,7 @@ begin
     )
   );
 
+  MVCCryptInit; //Initialize OpenSSL
   // Analytics middleware generates a csv log, useful to do trafic analysis
   //FMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));
   

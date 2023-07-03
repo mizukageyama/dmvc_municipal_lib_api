@@ -12,7 +12,7 @@ type
   public
     const PAGE_SIZE = 10;
     const PASSWORD_HASHING_ITERATION_COUNT = 5;
-    const PASSWORD_KEY_SIZE = 7;
+    const PASSWORD_KEY_SIZE = 12;
   end;
 
 type

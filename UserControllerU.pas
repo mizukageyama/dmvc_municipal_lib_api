@@ -13,45 +13,60 @@ type
   TUserController = class(TBaseController)
   public
     [MVCPath]
-    [MVCDoc('It returns all the users not logically deleted ' +
+    [MVCSwagSummary('User', 'It returns all the users not logically deleted ' +
       '(password hash is not shown) and allows to apply a filter.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetUsers;
 
     [MVCPath]
-    [MVCDoc('It creates a new user and returns the new user URI.')]
+    [MVCSwagSummary('User', 'It creates a new user and returns the new user URI.')]
     [MVCHTTPMethod([httpPOST])]
     procedure CreateUser;
 
     [MVCPath('/($UserID)')]
-    [MVCDoc('It returns a single user using its user ID.')]
+    [MVCSwagSummary('User', 'It returns a single user using its user ID.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetUserByID(const UserID: Integer);
 
     [MVCPath('/($UserID)')]
-    [MVCDoc('It updates a user using its user ID.')]
+    [MVCSwagSummary('User', 'It updates a user using its user ID.')]
     [MVCHTTPMethod([httpPUT])]
     procedure UpdateUserByID(const UserID: Integer);
 
     [MVCPath('/($UserID)')]
-    [MVCDoc('It logically deletes a user using its user ID. The record ' +
+    [MVCSwagSummary('User', 'It logically deletes a user using its user ID. The record ' +
       'is not physically deleted but its deleted field is set to True.')]
     [MVCHTTPMethod([httpDELETE])]
     procedure DeleteUserByID(const UserID: Integer);
 
     [MVCPath('/me/password')]
-    [MVCDoc('Any user can change its password after login.')]
+    [MVCSwagSummary('User', 'Any user can change its password after login.')]
     [MVCHTTPMethod([httpPUT])]
     procedure ChangeCurrentUserPassword;
   end;
 
 implementation
 
+uses
+   MVCFramework.Serializer.JsonDataObjects, JsonDataObjects;
 
 { TUserController }
 
 procedure TUserController.ChangeCurrentUserPassword;
+var
+  lUser: TUserWithPassword;
 begin
+  lUser := Context.Request.BodyAs<TUserWithPassword>;
+  try
+    lUser := TMVCActiveRecord.GetOneByWhere<TUserWithPassword>(
+      'email = ? and not deleted', [Context.LoggedUser.UserName], True);
+
+   lUser.Update;
+   Render204NoContent('/api/users/' + lUser.ID.ToString);
+ finally
+   lUser.Free;
+ end;
+
 end;
 
 procedure TUserController.CreateUser;
@@ -83,13 +98,20 @@ procedure TUserController.DeleteUserByID(const UserID: Integer);
 var
   lUser: TUser;
 begin
+  if Context.LoggedUser.CustomData['user_id'].ToInteger = UserID then
+  begin
+    raise EMVCException.Create(HTTP_STATUS.Unauthorized,
+      'Current user cannot be deleted');
+  end;
+
   lUser := TMVCActiveRecord.GetByPK<TUser>(UserID, True);
   try
-    lUser.Delete;
+    lUser.Deleted := True;
+    lUser.Update;
+    Render204NoContent('', 'User deleted');
   finally
     lUser.Free;
   end;
-  Render204NoContent('', 'User deleted');
 end;
 
 procedure TUserController.GetUserByID(const UserID: Integer);
@@ -117,6 +139,9 @@ var
   lFilterQuery: string;
   lUsers: TObjectList<TUser>;
 begin
+  { if current user doesn't have "employee" role, raise an exception }
+  EnsureRole('employee');
+
   lCurrentPage := 0;
   TryStrToInt(Context.Request.Params['page'], lCurrentPage);
   lCurrentPage := Max(lCurrentPage, 1);

@@ -7,6 +7,7 @@ uses
   MVCFramework.ActiveRecord,
   MVCFramework.Nullables,
   MVCFramework.Commons,
+  MVCFramework.Swagger.Commons,
   MVCFramework.SQLGenerators.MySQL,
   System.Generics.Collections;
 
@@ -72,6 +73,20 @@ type
     [MVCDoNotSerialize]
     [MVCNameAs('pwd')]
     property Password: string read GetPassword write SetPassword;
+  end;
+
+  {TUserPasswordChecker Entity}
+  [MVCNameCase(ncSnakeCase)]
+  [MVCTable('user')]
+  [MVCEntityActions([eaCreate, eaUpdate, eaRetrieve])]
+  TUserPasswordChecker = class(TUser)
+  private
+    [MVCTableField('PWD')]
+    fHashedPwd: string;
+    [MVCTableField('SALT')]
+    fSalt: string;
+  public
+    function IsValid(const Password: string): boolean;
   end;
 
   {Customer Entity}
@@ -227,9 +242,7 @@ procedure TUserWithPassword.OnBeforeInsertOrUpdate;
 begin
   inherited;
   fSalt := TGUID.NewGuid.ToString;
-  fIterationsCount := TSysConst.PASSWORD_HASHING_ITERATION_COUNT;
-  fHashedPwd := GetPasswordHash(fSalt, fIterationsCount,
-    TSysConst.PASSWORD_KEY_SIZE, fPassword);
+  fHashedPwd := GetPasswordHash(fSalt, fPassword);
 end;
 
 procedure TUserWithPassword.OnValidation(const EntityAction: TMVCEntityAction);
@@ -253,6 +266,13 @@ procedure TBook.OnValidation(const EntityAction: TMVCEntityAction);
 begin
   inherited;
 
+end;
+
+{ TUserPasswordChecker }
+
+function TUserPasswordChecker.IsValid(const Password: string): boolean;
+begin
+  Result := GetPasswordHash(Self.fSalt, Password) = Self.fHashedPwd;
 end;
 
 end.

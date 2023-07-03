@@ -3,8 +3,8 @@ unit AuthCriteriaU;
 interface
 
 uses
-  System.Generics.Collections,
-  MVCFramework, PrivateControllerU;
+  System.Generics.Collections, FireDAC.Comp.Client, MVCFramework.ActiveRecord,
+  MVCFramework, PrivateControllerU, EntitiesU, System.StrUtils, System.SysUtils;
 
 type
   TAuthCriteria = class(TInterfacedObject, IMVCAuthenticationHandler)
@@ -26,27 +26,46 @@ procedure TAuthCriteria.OnRequest(const AContext: TWebContext;
   const AControllerQualifiedClassName, AActionName: string;
   var AAuthenticationRequired: Boolean);
 begin
-  AAuthenticationRequired :=  AControllerQualifiedClassName =
-    TPrivateController.QualifiedClassName;
+  AAuthenticationRequired := True;
 end;
 
 procedure TAuthCriteria.OnAuthentication(const AContext: TWebContext; const AUserName,
   APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean;
   const ASessionData: TDictionary<string, string>);
+var
+  lConn: TFDConnection;
+  lUser: TUserPasswordChecker;
 begin
-  AIsValid := APassword = ('pwd' + AUserName);
-  if not AIsValid then
-    Exit;
-  if AUserName = 'user1' then
-    AUserRoles.Add('role1')
-  else if AUserName = 'user2' then
-    AUserRoles.Add('role2')
-  else if AUserName = 'user3' then
-  begin
-    AUserRoles.Add('role1');
-    AUserRoles.Add('role2');
+  inherited;
+
+  lConn := TFDConnection.Create(nil);
+  lConn.ConnectionDefName := 'Municipal_Library_Connection';
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(lConn, True);
+
+  lUser := TMVCActiveRecord
+    .GetOneByWhere<TUserPasswordChecker>('email = ? and not deleted',
+    [AUserName], False);
+
+  try
+    AIsValid := Assigned(lUser) and lUser.IsValid(APassword);
+    if not AIsValid then
+    begin
+      Exit;
+    end;
+    //all valid users have "guest"
+    AUserRoles.Add('guest');
+    if EndsText('@library.com', AUserName) then
+    begin
+      //the employee are recognized using their email
+      AUserRoles.Add('employee');
+    end;
+
+    //Let's save in the custom claims the user's user_id
+    ASessionData.AddOrSetValue('user_id', lUser.ID.ToString);
+  finally
+    lUser.Free;
+    ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
   end;
-  AIsValid := AUserRoles.Count > 0;
 end;
 
 procedure TAuthCriteria.OnAuthorization(const AContext: TWebContext;
@@ -55,14 +74,19 @@ procedure TAuthCriteria.OnAuthorization(const AContext: TWebContext;
 begin
   AIsAuthorized := False;
 
-  if AUserRoles.Contains('role1') then
+  if AUserRoles.Contains('employee') then
   begin
-    AIsAuthorized := AIsAuthorized or (AActionName = 'ActionForRole1');
-  end;
-
-  if AUserRoles.Contains('role2') then
+    AIsAuthorized := True;
+    Exit;
+  end
+  else
   begin
-    AIsAuthorized := AIsAuthorized or (AActionName = 'ActionForRole2');
+    //All the guests can invoke any actions which not belongs to
+    //TUserController, and however, can invoke all the "read" methods.
+    //Simply put, they cannot do an change on the users.
+    AIsAuthorized := (AControllerQualifiedClassName <>
+      'UserControllerU.TUserController') or
+      (AContext.Request.HTTPMethodAsString = 'GET');
   end;
 end;
 
