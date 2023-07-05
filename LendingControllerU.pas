@@ -51,6 +51,7 @@ var
   lUserID: string;
   lLending: TLending;
 begin
+  EnsureRole('employee');
   lLending := Context.Request.BodyAs<TLending>;
   try
     if not Context.LoggedUser.CustomData.TryGetValue('user_id', lUserID) then
@@ -76,6 +77,7 @@ end;
 
 procedure TLendingController.GetLendingHistoryByBookID(const BookID: Integer);
 begin
+  EnsureRole('employee');
   Render(
     ObjectDict().Add('data',
       TMVCActiveRecord.Where<TLending>('book_id = ?', [BookID]),
@@ -103,6 +105,7 @@ var
   lFilterQuery: string; //status
   lLendings: TObjectList<TLending>;
 begin
+  EnsureRole('employee');
   lCurrentPage := 0;
   TryStrToInt(Context.Request.Params['page'], lCurrentPage);
   lCurrentPage := Max(lCurrentPage, 1);
@@ -174,6 +177,7 @@ var
   lLending: TLending;
   lUserID: string;
 begin
+  EnsureRole('employee');
   lLending := TMVCActiveRecord.GetByPK<TLending>(LendingID);
   try
     if not Context.LoggedUser.CustomData.TryGetValue('user_id', lUserID) then
@@ -202,6 +206,7 @@ procedure TLendingController.UpdateLendingByID(const LendingID: Integer);
 var
   lLending: TLending;
 begin
+  EnsureRole('employee');
   lLending := TMVCActiveRecord.GetByPK<TLending>(LendingID, false);
   if Assigned(lLending) then
   begin

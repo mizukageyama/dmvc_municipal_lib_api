@@ -58,10 +58,15 @@ procedure TAuthorController.CreateAuthor;
 var
   lAuthor: TAuthor;
 begin
+  EnsureRole('employee');
   lAuthor := Context.Request.BodyAs<TAuthor>;
   try
     lAuthor.Insert;
-    Render201Created('/api/authors/' + lAuthor.ID.ToString);
+    var AuthorID := lAuthor.ID.ToString;
+    Render(StrDict(
+      ['id', 'uri'],
+      [AuthorID, Format('/api/authors/%s', [AuthorID])]
+    ));
   finally
     lAuthor.Free;
   end;
@@ -71,6 +76,7 @@ procedure TAuthorController.DeleteAuthorByID(const AuthorID: Integer);
 var
   lAuthor: TAuthor;
 begin
+  EnsureRole('employee');
   lAuthor := TMVCActiveRecord.GetByPK<TAuthor>(AuthorID, True);
   try
     lAuthor.Delete;
@@ -118,7 +124,7 @@ begin
   lFilterQuery := Context.Request.Params['q'];
   lRQL := AppendIfNotEmpty(lFilterQuery, ';');
 
-  lRQL := Format('%ssort(+DateOfBirth, +ID);limit(%d,%d)',
+  lRQL := Format('%ssort(+FullName, +ID);limit(%d,%d)',
     [lRQL, lFirstRec, TSysConst.PAGE_SIZE]);
 
   lTotalPages := TPagination.GetTotalPages<TAuthor>(lFilterQuery);
@@ -174,6 +180,8 @@ procedure TAuthorController.UpdateAuthorByID(const AuthorID: Integer);
 var
   lAuthor: TAuthor;
 begin
+  EnsureRole('employee');
+
   lAuthor := TMVCActiveRecord.GetByPK<TAuthor>(AuthorID, false);
   if Assigned(lAuthor) then
   begin

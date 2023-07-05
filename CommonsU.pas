@@ -63,6 +63,9 @@ begin
   Insert('curr_page', lInfoKeys, 0);
   Insert(CurrPageNumber.ToString(), lInfoValues, 0);
 
+  Insert('total_page', lInfoKeys, 0);
+  Insert(TotalPage.ToString(), lInfoValues, 0);
+
   { get additional filter query if params 'q' exists }
   if (not FilterQuery.IsEmpty) and ForRQLQuery then
     lQuery := 'q=' + AppendIfNotEmpty(FilterQuery, '&')

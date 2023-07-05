@@ -50,6 +50,7 @@ procedure TBookController.CreateBook;
 var
   lBook: TBook;
 begin
+  EnsureRole('employee');
   lBook := Context.Request.BodyAs<TBook>;
   try
     lBook.Insert;
@@ -63,6 +64,7 @@ procedure TBookController.DeleteBookById(BookID: Integer);
 var
   lBook: TBook;
 begin
+  EnsureRole('employee');
   lBook := TMVCActiveRecord.GetByPK<TBook>(BookID, True);
   try
     lBook.Delete;
@@ -140,6 +142,7 @@ procedure TBookController.UpdateBookById(BookID: Integer);
 var
   lBook: TBook;
 begin
+  EnsureRole('employee');
   lBook := TMVCActiveRecord.GetByPK<TBook>(BookID, false);
   if Assigned(lBook) then
   begin

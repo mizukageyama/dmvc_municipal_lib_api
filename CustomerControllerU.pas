@@ -52,6 +52,7 @@ procedure TCustomerController.CreateCustomers;
 var
   lCustomer: TCustomer;
 begin
+  EnsureRole('employee');
   lCustomer := Context.Request.BodyAs<TCustomer>;
   try
     lCustomer.Insert;
@@ -65,6 +66,7 @@ procedure TCustomerController.DeleteCustomerByID(const CustomerID: Integer);
 var
   lCustomer: TCustomer;
 begin
+  EnsureRole('employee');
   lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(CustomerID, True);
   try
     lCustomer.Delete;
@@ -145,6 +147,7 @@ procedure TCustomerController.UpdateCustomerByID(const CustomerID: Integer);
 var
   lCustomer: TCustomer;
 begin
+  EnsureRole('employee');
   lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(CustomerID, false);
   if Assigned(lCustomer) then
   begin

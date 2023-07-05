@@ -56,6 +56,7 @@ procedure TUserController.ChangeCurrentUserPassword;
 var
   lUser: TUserWithPassword;
 begin
+  EnsureOneOf(['employee', 'guest']);
   lUser := Context.Request.BodyAs<TUserWithPassword>;
   try
     lUser := TMVCActiveRecord.GetOneByWhere<TUserWithPassword>(
@@ -73,6 +74,7 @@ procedure TUserController.CreateUser;
 var
   lUser: TUserWithPassword;
 begin
+  EnsureRole('employee');
   lUser := Context.Request.BodyAs<TUserWithPassword>;
   try
     try
@@ -98,6 +100,7 @@ procedure TUserController.DeleteUserByID(const UserID: Integer);
 var
   lUser: TUser;
 begin
+  EnsureRole('employee');
   if Context.LoggedUser.CustomData['user_id'].ToInteger = UserID then
   begin
     raise EMVCException.Create(HTTP_STATUS.Unauthorized,
@@ -177,6 +180,7 @@ procedure TUserController.UpdateUserByID(const UserID: Integer);
 var
   lUser: TUser;
 begin
+  EnsureRole('employee');
   lUser := TMVCActiveRecord.GetByPK<TUser>(UserID, false);
   if Assigned(lUser) then
   begin
