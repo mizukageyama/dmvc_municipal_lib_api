@@ -17,17 +17,17 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure GetLendings;
 
-    [MVCPath('customers/($CustomerID)')]
+    [MVCPath('/customers/($CustomerID)')]
     [MVCSwagSummary('Lending', 'It returns the list of all lendings for a customer.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetLendingsByCustomerID(const CustomerID: Integer);
 
-    [MVCPath('books/($BookID)')]
+    [MVCPath('/books/($BookID)')]
     [MVCSwagSummary('Lending', 'It returns all the lendings for a specified book.')]
     [MVCHTTPMethod([httpGET])]
     procedure GetLendingHistoryByBookID(const BookID: Integer);
 
-    [MVCPath('customers/($CustomerID)')]
+    [MVCPath('/customers/($CustomerID)')]
     [MVCSwagSummary('Lending', 'It creates a new lending for a customer about a book.')]
     [MVCHTTPMethod([httpPOST])]
     procedure CreateLending(const CustomerID: Integer);
@@ -39,7 +39,7 @@ type
 
     [MVCPath('/terminated/($LendingID)')]
     [MVCSwagSummary('Lending', 'It terminates a lending.')]
-    [MVCHTTPMethod([httpPOST])]
+    [MVCHTTPMethod([httpPUT])]
     procedure TerminateLending(const LendingID: Integer);
   end;
 
@@ -50,13 +50,23 @@ procedure TLendingController.CreateLending(const CustomerID: Integer);
 var
   lUserID: string;
   lLending: TLending;
+  lLendingByBookId: TLending;
 begin
   EnsureRole('employee');
   lLending := Context.Request.BodyAs<TLending>;
+
+  {check if the book is already lent to another customer}
+  lLendingByBookId := TMVCActiveRecord
+    .GetOneByWhere<TLending>('book_id = ? and lending_end IS NULL',
+    [lLending.BookID], false);
+  if Assigned(lLendingByBookId) then
+     raise EMVCException.Create(HTTP_STATUS.BadRequest,
+        'Sorry, this book is lent to someone else.');
+
   try
     if not Context.LoggedUser.CustomData.TryGetValue('user_id', lUserID) then
     begin
-      raise EMVCException.Create('UserID not found in custome data');
+      raise EMVCException.Create('UserID not found in customer data');
     end;
 
     lLending.LendingStartUserID := lUserID.ToInt64;
@@ -64,11 +74,7 @@ begin
     lLending.LendingEnd.Clear;
     lLending.CustomerID := CustomerID;
 
-    try
-      lLending.Insert;
-    except
-
-    end;
+    lLending.Insert;
     Render201Created('/api/lendings/' + lLending.ID.ToString);
   finally
     lLending.Free;
@@ -103,7 +109,7 @@ var
   lFirstRec: Integer;
   lRQL: string;
   lFilterQuery: string; //status
-  lLendings: TObjectList<TLending>;
+  lLendings: TObjectList<TLendingRef>;
 begin
   EnsureRole('employee');
   lCurrentPage := 0;
@@ -118,17 +124,17 @@ begin
      var status := lFilterQuery;
      if status = 'open' then
        lRQL := 'eq(lending_end, null)'
-     else
+     else if status = 'closed' then
        lRQL := 'ne(lending_end, null)';
     lFilterQuery := 'status=' + lFilterQuery;
   end;
-  lTotalPages := TPagination.GetTotalPages<TLending>(lRQL);
+  lTotalPages := TPagination.GetTotalPages<TLendingRef>(lRQL);
 
   lRQL := AppendIfNotEmpty(lRQL, ';');
   lRQL := Format('%ssort(-LendingStart, +ID);limit(%d,%d)',
     [lRQL, lFirstRec, TSysConst.PAGE_SIZE]);
 
-  lLendings := TMVCActiveRecord.SelectRQL<TLending>(lRQL, -1);
+  lLendings := TMVCActiveRecord.SelectRQL<TLendingRef>(lRQL, -1);
 
   Render(
     ObjectDict().Add(
@@ -138,12 +144,12 @@ begin
         begin
           Links.AddRefLink.
             Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
-            Add(HATEOAS.HREF, Format('/api/lendings/%d', [TLending(Obj).ID])).
+            Add(HATEOAS.HREF, Format('/api/lendings/%d', [TLendingRef(Obj).ID])).
             Add(HATEOAS.REL, 'self');
           Links.AddRefLink.
             Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
             Add(HATEOAS.HREF, Format('/api/lendings/customers/%d',
-              [TLending(Obj).ID])).
+              [TLendingRef(Obj).ID])).
             Add(HATEOAS.REL, 'customer_lendings');
         end
     )
@@ -205,9 +211,19 @@ end;
 procedure TLendingController.UpdateLendingByID(const LendingID: Integer);
 var
   lLending: TLending;
+  lLendingByBookId: TLending;
 begin
   EnsureRole('employee');
   lLending := TMVCActiveRecord.GetByPK<TLending>(LendingID, false);
+
+  {check if the book is already lent to another customer}
+  lLendingByBookId := TMVCActiveRecord
+    .GetOneByWhere<TLending>('book_id = ? and lending_end IS NULL',
+    [lLending.BookID], false);
+  if Assigned(lLendingByBookId) then
+     raise EMVCException.Create(HTTP_STATUS.BadRequest,
+        'Sorry, this book is lent to someone else.');
+
   if Assigned(lLending) then
   begin
     try
@@ -219,7 +235,7 @@ begin
     end;
   end
   else
-    Render(HTTP_STATUS.NotFound, 'Author does not exist');
+    Render(HTTP_STATUS.NotFound, 'Lending does not exist');
 end;
 
 end.

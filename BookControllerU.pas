@@ -15,6 +15,11 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure GetBooks;
 
+    [MVCPath('/all')]
+    [MVCSwagSummary('Book', 'It returns list of all books without pagination.')]
+    [MVCHTTPMethod([httpGET])]
+    procedure GetAllBooks;
+
     [MVCPath('/($BookID)')]
     [MVCSwagSummary('Book', 'It returns a single book with a ref link to its author and the '+
       'story of its lending.')]
@@ -74,16 +79,25 @@ begin
   Render204NoContent('', 'Book deleted');
 end;
 
+procedure TBookController.GetAllBooks;
+var
+  lBooks: TObjectList<TBookAndAuthor>;
+begin
+  lBooks := TMVCActiveRecord
+    .SelectRQL<TBookAndAuthor>('sort(+Title, +PubYear)', -1);
+  Render(ObjectDict().Add('data', lBooks));
+end;
+
 procedure TBookController.GetBookById(BookID: Integer);
 begin
   Render(
     ObjectDict().Add('data',
-      TMVCActiveRecord.Where<TBook>('id = ?', [BookID]),
+      TMVCActiveRecord.Where<TBookAndAuthor>('id = ?', [BookID]),
       procedure(const Book: TObject; const Links: IMVCLinks)
       begin
         Links.AddRefLink.
           Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
-          Add(HATEOAS.HREF, '/api/books/' + TBook(Book).ID.ToString).
+          Add(HATEOAS.HREF, '/api/books/' + TBookAndAuthor(Book).ID.ToString).
           Add(HATEOAS.REL, 'self');
         Links.AddRefLink.
           Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
@@ -101,7 +115,7 @@ var
   lFirstRec: Integer;
   lRQL: string;
   lFilterQuery: string;
-  lBooks: TObjectList<TBook>;
+  lBooks: TObjectList<TBookAndAuthor>;
 begin
   lCurrentPage := 0;
   TryStrToInt(Context.Request.Params['page'], lCurrentPage);
@@ -114,8 +128,8 @@ begin
   lRQL := Format('%ssort(+Title, +PubYear);limit(%d,%d)',
     [lRQL, lFirstRec, TSysConst.PAGE_SIZE]);
 
-  lTotalPages := TPagination.GetTotalPages<TBook>(lFilterQuery);
-  lBooks := TMVCActiveRecord.SelectRQL<TBook>(lRQL, -1);
+  lTotalPages := TPagination.GetTotalPages<TBookAndAuthor>(lFilterQuery);
+  lBooks := TMVCActiveRecord.SelectRQL<TBookAndAuthor>(lRQL, -1);
 
   Render(
     ObjectDict().Add(
@@ -125,7 +139,7 @@ begin
       begin
         Links.AddRefLink.
           Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
-          Add(HATEOAS.HREF, '/api/books/' + TBook(Book).ID.ToString).
+          Add(HATEOAS.HREF, '/api/books/' + TBookAndAuthor(Book).ID.ToString).
           Add(HATEOAS.REL, 'self');
         Links.AddRefLink.
           Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).

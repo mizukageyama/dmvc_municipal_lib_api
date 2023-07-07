@@ -158,14 +158,19 @@ type
 
   {Book and Author}
   [MVCNameCase(ncSnakeCase)]
+  [MVCTable('book')]
   TBookAndAuthor = class(TEntityBase)
   private
     fAuthor: string;
+    [MVCTableField('AUTHOR_ID')]
     fAuthorID: Integer;
+    [MVCTableField('PUB_YEAR')]
     fPubYear: NullableUInt16;
+    [MVCTableField('TITLE')]
     fTitle: string;
+    function GetAuthor: string;
   public
-    property Author: string read fAuthor write fAuthor;
+    property Author: string read GetAuthor write fAuthor;
     property AuthorID: Integer read fAuthorID write fAuthorID;
     property PubYear: NullableUInt16 read fPubYear write fPubYear;
     property Title: string read fTitle write fTitle;
@@ -193,6 +198,46 @@ type
       read fBookID write fBookID;
     property CustomerID: Integer
       read fCustomerID write fCustomerID;
+    property LendingEnd: NullableTDateTime
+      read fLendingEnd write fLendingEnd;
+    property LendingEndUserID: NullableInt64
+      read fLendingEndUserID write fLendingEndUserID;
+    property LendingStart: NullableTDateTime
+      read fLendingStart write fLendingStart;
+    property LendingStartUserID: NullableInt64
+      read fLendingStartUserID write fLendingStartUserID;
+  end;
+
+  {Lending Ref Entity}
+  [MVCNameCase(ncSnakeCase)]
+  [MVCTable('lending')]
+  TLendingRef = class(TEntityBase)
+  private
+    [MVCTableField('BOOK_ID')]
+    fBookID: integer;
+    fBookTitle: String;
+    [MVCTableField('CUSTOMER_ID')]
+    fCustomerID: Integer;
+    fCustomerName: String;
+    [MVCTableField('LENDING_END')]
+    fLendingEnd: NullableTDateTime;
+    [MVCTableField('LENDING_END_USER_ID')]
+    fLendingEndUserID: NullableInt64;
+    [MVCTableField('LENDING_START')]
+    fLendingStart: NullableTDateTime;
+    [MVCTableField('LENDING_START_USER_ID')]
+    fLendingStartUserID: NullableInt64;
+    function GetBookTitle: string;
+    function GetCustomerName: string;
+  public
+    property BookID: Integer
+      read fBookID write fBookID;
+    property BookTitle: string
+      read GetBookTitle;
+    property CustomerID: Integer
+      read fCustomerID write fCustomerID;
+    property CustomerName: string
+      read GetCustomerName;
     property LendingEnd: NullableTDateTime
       read fLendingEnd write fLendingEnd;
     property LendingEndUserID: NullableInt64
@@ -273,6 +318,46 @@ end;
 function TUserPasswordChecker.IsValid(const Password: string): boolean;
 begin
   Result := GetPasswordHash(Self.fSalt, Password) = Self.fHashedPwd;
+end;
+
+{ TBookAndAuthor }
+
+function TBookAndAuthor.GetAuthor: string;
+var
+  lAuthor: TAuthor;
+begin
+  try
+    lAuthor := TMVCActiveRecord.GetByPK<TAuthor>(Self.AuthorID);
+    Result := lAuthor.FullName;
+  except
+    Result := '';
+  end;
+end;
+
+{ TLendingRef }
+
+function TLendingRef.GetBookTitle: string;
+var
+  lBook: TBook;
+begin
+  try
+    lBook := TMVCActiveRecord.GetByPK<TBook>(Self.BookID);
+    Result := lBook.Title;
+  except
+    Result := '';
+  end;
+end;
+
+function TLendingRef.GetCustomerName: string;
+var
+  lCustomer: TCustomer;
+begin
+  try
+    lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(Self.CustomerID);
+    Result := lCustomer.FirstName + ' ' +  lCustomer.LastName;
+  except
+    Result := '';
+  end;
 end;
 
 end.

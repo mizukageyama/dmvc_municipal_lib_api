@@ -18,6 +18,11 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure GetAuthors;
 
+    [MVCPath('/all')]
+    [MVCSwagSummary('Author', 'Returns all authors without pagination')]
+    [MVCHTTPMethod([httpGET])]
+    procedure GetAllAuthors;
+
     [MVCPath('/($AuthorID)')]
     [MVCSwagSummary('Author', 'It returns a single author using its author ID.')]
     [MVCHTTPMethod([httpGET])]
@@ -84,6 +89,14 @@ begin
     lAuthor.Free;
   end;
   Render204NoContent('', 'Author deleted');
+end;
+
+procedure TAuthorController.GetAllAuthors;
+var
+  lAuthors: TObjectList<TAuthor>;
+begin
+  lAuthors := TMVCActiveRecord.SelectRQL<TAuthor>('sort(+FullName, +ID)', -1);
+  Render(ObjectDict().Add('data', lAuthors));
 end;
 
 procedure TAuthorController.GetAuthorByID(const AuthorID: Integer);

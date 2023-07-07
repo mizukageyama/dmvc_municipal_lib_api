@@ -151,6 +151,11 @@ begin
   lFirstRec := (lCurrentPage - 1) * TSysConst.PAGE_SIZE;
   { get additional filter query if params 'q' exists }
   lFilterQuery := Context.Request.Params['q'];
+  if lFilterQuery.IsEmpty then
+    lFilterQuery := 'ne(deleted, 1)'
+  else
+    lFilterQuery := 'and(' + AppendIfNotEmpty(lFilterQuery, ',ne(deleted, 1))');
+
   lRQL := AppendIfNotEmpty(lFilterQuery, ';');
 
   lRQL := Format('%ssort(+Email, +ID);limit(%d,%d)',

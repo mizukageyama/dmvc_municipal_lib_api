@@ -19,6 +19,13 @@ type
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetCustomers;
 
+    [MVCPath('/all')]
+    [MVCSwagSummary('Customer',
+      'It returns the list of all the customers without pagination')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
+    procedure GetAllCustomers;
+
     [MVCPath('/($CustomerID)')]
     [MVCSwagSummary('Customer', 'It returns a single customer with a ref link to its borrowings.')]
     [MVCHTTPMethod([httpGET])]
@@ -76,6 +83,15 @@ begin
   Render204NoContent('', 'Customer deleted');
 end;
 
+procedure TCustomerController.GetAllCustomers;
+var
+  lCustomers: TObjectList<TCustomer>;
+begin
+  lCustomers := TMVCActiveRecord
+    .SelectRQL<TCustomer>('sort(+FirstName, +LastName)', -1);
+  Render(ObjectDict().Add('data', lCustomers));
+end;
+
 procedure TCustomerController.GetCustomerByID(const CustomerID: Integer);
 begin
   Render(
@@ -115,7 +131,7 @@ begin
   lFilterQuery := Context.Request.Params['q'];
   lRQL := AppendIfNotEmpty(lFilterQuery, ';');
 
-  lRQL := Format('%ssort(+DateOfBirth, +ID);limit(%d,%d)',
+  lRQL := Format('%ssort(+FirstName, +LastName);limit(%d,%d)',
     [lRQL, lFirstRec, TSysConst.PAGE_SIZE]);
 
   lTotalPages := TPagination.GetTotalPages<TCustomer>(lFilterQuery);

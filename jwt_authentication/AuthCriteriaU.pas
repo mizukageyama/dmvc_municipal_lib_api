@@ -59,7 +59,8 @@ begin
       //the employee are recognized using their email
       AUserRoles.Add('employee');
     end;
-
+    lUser.LastLogin := Now;
+    lUser.Update;
     //Let's save in the custom claims the user's user_id
     ASessionData.AddOrSetValue('user_id', lUser.ID.ToString);
   finally
