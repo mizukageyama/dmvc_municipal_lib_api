@@ -86,12 +86,12 @@ begin
   EnsureRole('employee');
   Render(
     ObjectDict().Add('data',
-      TMVCActiveRecord.Where<TLending>('book_id = ?', [BookID]),
+      TMVCActiveRecord.Where<TLendingRef>('book_id = ?', [BookID]),
       procedure(const Obj: TObject; const Links: IMVCLinks)
       begin
         Links.AddRefLink.
           Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
-          Add(HATEOAS.HREF, '/api/lendings/' + TLending(Obj).ID.ToString).
+          Add(HATEOAS.HREF, '/api/lendings/' + TLendingRef(Obj).ID.ToString).
           Add(HATEOAS.REL, 'self');
         Links.AddRefLink.
           Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
@@ -162,12 +162,12 @@ procedure TLendingController.GetLendingsByCustomerID(const CustomerID: Integer);
 begin
   Render(
     ObjectDict().Add('data',
-      TMVCActiveRecord.Where<TLending>('customer_id = ?', [CustomerID]),
+      TMVCActiveRecord.Where<TLendingRef>('customer_id = ?', [CustomerID]),
       procedure(const Obj: TObject; const Links: IMVCLinks)
       begin
         Links.AddRefLink.
           Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
-          Add(HATEOAS.HREF, '/api/lendings/' + TLending(Obj).ID.ToString).
+          Add(HATEOAS.HREF, '/api/lendings/' + TLendingRef(Obj).ID.ToString).
           Add(HATEOAS.REL, 'self');
         Links.AddRefLink.
           Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
