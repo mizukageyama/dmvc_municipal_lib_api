@@ -4,24 +4,24 @@ interface
 
 uses CommonsU;
 
-function GetPasswordHash(const Salt, Password: string): string;
+function GetPasswordHash(const ASalt, APassword: string): string;
 
 implementation
 
 uses
   System.SysUtils, MVCFramework.Commons, MVCFramework.Crypt.Utils;
 
-function GetPasswordHash(const Salt, Password: string): string;
+function GetPasswordHash(const ASalt, APassword: string): string;
 var
-  lPwdUTF8Bytes: TBytes;
-  lSaltUTF8Bytes: TBytes;
-  lSaltedPassword: TBytes;
+  LPwdUTF8Bytes: TBytes;
+  LSaltUTF8Bytes: TBytes;
+  LSaltedPassword: TBytes;
 begin
-  lPwdUTF8Bytes := TEncoding.UTF8.GetBytes(Password);
-  lSaltUTF8Bytes := TEncoding.UTF8.GetBytes(Salt);
-  lSaltedPassword := PBKDF2(lPwdUTF8Bytes, lSaltUTF8Bytes,
+  LPwdUTF8Bytes := TEncoding.UTF8.GetBytes(APassword);
+  LSaltUTF8Bytes := TEncoding.UTF8.GetBytes(ASalt);
+  LSaltedPassword := PBKDF2(LPwdUTF8Bytes, LSaltUTF8Bytes,
     TSysConst.PASSWORD_HASHING_ITERATION_COUNT, TSysConst.PASSWORD_KEY_SIZE);
-  Result := BytesToHex(lSaltedPassword);
+  Result := BytesToHex(LSaltedPassword);
 end;
 
 

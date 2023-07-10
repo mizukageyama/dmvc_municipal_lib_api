@@ -3,7 +3,7 @@ unit BookControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
+  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,EntitiesU,
   MVCFramework.ActiveRecord, BaseControllerU, MVCFramework.Swagger.Commons;
 
 type
@@ -37,6 +37,7 @@ type
     [MVCSwagSummary('Book', 'It creates a new book and returns the URI to ' +
     'find it in the Location HTTP header.')]
     [MVCSwagAuthentication]
+    [MVCSwagParam(plBody, 'body', 'Book data', TBook)]
     [MVCHTTPMethod([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure CreateBook;
@@ -44,6 +45,7 @@ type
     [MVCPath('/($BookID)')]
     [MVCSwagSummary('Book', 'It updates book information using its book ID.')]
     [MVCSwagAuthentication]
+    [MVCSwagParam(plBody, 'body', 'Book data', TBook)]
     [MVCHTTPMethod([httpPUT])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
@@ -59,46 +61,45 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Logger, System.StrUtils, EntitiesU,
-  System.Math, CommonsU, System.Generics.Collections;
+  System.SysUtils, MVCFramework.Logger, System.StrUtils, System.Math, CommonsU,
+  System.Generics.Collections;
 
 { TBookController }
 
 procedure TBookController.CreateBook;
 var
-  lBook: TBook;
+  LBook: TBook;
 begin
-  EnsureRole('employee');
-  lBook := Context.Request.BodyAs<TBook>;
+  LBook := Context.Request.BodyAs<TBook>;
   try
-    lBook.Insert;
-    Render201Created('/api/books/' + lBook.ID.ToString);
+    LBook.Insert;
+    Render201Created('/api/books/' + LBook.ID.ToString);
   finally
-    lBook.Free;
+    LBook.Free;
   end;
 end;
 
 procedure TBookController.DeleteBookById(BookID: Integer);
 var
-  lBook: TBook;
+  LBook: TBook;
 begin
   EnsureRole('employee');
-  lBook := TMVCActiveRecord.GetByPK<TBook>(BookID, True);
+  LBook := TMVCActiveRecord.GetByPK<TBook>(BookID, True);
   try
-    lBook.Delete;
+    LBook.Delete;
   finally
-    lBook.Free;
+    LBook.Free;
   end;
   Render204NoContent('', 'Book deleted');
 end;
 
 procedure TBookController.GetAllBooks;
 var
-  lBooks: TObjectList<TBookAndAuthor>;
+  LBooks: TObjectList<TBookAndAuthor>;
 begin
-  lBooks := TMVCActiveRecord
+  LBooks := TMVCActiveRecord
     .SelectRQL<TBookAndAuthor>('sort(+Title, +PubYear)', -1);
-  Render(ObjectDict().Add('data', lBooks));
+  Render(ObjectDict().Add('data', LBooks));
 end;
 
 procedure TBookController.GetBookById(BookID: Integer);
@@ -109,31 +110,31 @@ end;
 
 procedure TBookController.GetBooks;
 var
-  lTotalPages: Integer;
-  lCurrentPage: Integer;
-  lFirstRec: Integer;
-  lRQL: string;
-  lFilterQuery: string;
-  lBooks: TObjectList<TBookAndAuthor>;
+  LTotalPages: Integer;
+  LCurrentPage: Integer;
+  LFirstRec: Integer;
+  LRQL: string;
+  LFilterQuery: string;
+  LBooks: TObjectList<TBookAndAuthor>;
 begin
-  lCurrentPage := 0;
-  TryStrToInt(Context.Request.Params['page'], lCurrentPage);
-  lCurrentPage := Max(lCurrentPage, 1);
-  lFirstRec := (lCurrentPage - 1) * TSysConst.PAGE_SIZE;
+  LCurrentPage := 0;
+  TryStrToInt(Context.Request.Params['page'], LCurrentPage);
+  LCurrentPage := Max(LCurrentPage, 1);
+  LFirstRec := (LCurrentPage - 1) * TSysConst.PAGE_SIZE;
   { get additional filter query if params 'q' exists }
-  lFilterQuery := Context.Request.Params['q'];
-  lRQL := AppendIfNotEmpty(lFilterQuery, ';');
+  LFilterQuery := Context.Request.Params['q'];
+  LRQL := AppendIfNotEmpty(LFilterQuery, ';');
 
-  lRQL := Format('%ssort(+Title, +PubYear);limit(%d,%d)',
-    [lRQL, lFirstRec, TSysConst.PAGE_SIZE]);
+  LRQL := Format('%ssort(+Title, +PubYear);limit(%d,%d)',
+    [LRQL, LFirstRec, TSysConst.PAGE_SIZE]);
 
-  lTotalPages := TPagination.GetTotalPages<TBookAndAuthor>(lFilterQuery);
-  lBooks := TMVCActiveRecord.SelectRQL<TBookAndAuthor>(lRQL, -1);
+  LTotalPages := TPagination.GetTotalPages<TBookAndAuthor>(LFilterQuery);
+  LBooks := TMVCActiveRecord.SelectRQL<TBookAndAuthor>(LRQL, -1);
 
   Render(
     ObjectDict().Add(
       'data',
-      lBooks,
+      LBooks,
       procedure(const Book: TObject; const Links: IMVCLinks)
       begin
         Links.AddRefLink.
@@ -146,25 +147,25 @@ begin
           Add(HATEOAS.REL, 'author');
       end
     )
-    .Add('meta', TPagination.GetInfo(lCurrentPage, lTotalPages,
-      '/api/books?%spage=%d', lRQl))
+    .Add('meta', TPagination.GetInfo(LCurrentPage, LTotalPages,
+      '/api/books?%spage=%d', LRQL))
   );
 end;
 
 procedure TBookController.UpdateBookById(BookID: Integer);
 var
-  lBook: TBook;
+  LBook: TBook;
 begin
   EnsureRole('employee');
-  lBook := TMVCActiveRecord.GetByPK<TBook>(BookID, false);
-  if Assigned(lBook) then
+  LBook := TMVCActiveRecord.GetByPK<TBook>(BookID, false);
+  if Assigned(LBook) then
   begin
     try
-      Context.Request.BodyFor<TBook>(lBook);
-      lBook.Update;
-      Render(HTTP_STATUS.OK, lBook, False);
+      Context.Request.BodyFor<TBook>(LBook);
+      LBook.Update;
+      Render(HTTP_STATUS.OK, LBook, False);
     finally
-      lBook.Free;
+      LBook.Free;
     end;
   end
   else

@@ -33,21 +33,21 @@ procedure TAuthCriteria.OnAuthentication(const AContext: TWebContext;
   const AUserName, APassword: string; AUserRoles: TList<string>;
   var AIsValid: Boolean; const ASessionData: TDictionary<string, string>);
 var
-  lConn: TFDConnection;
-  lUser: TUserPasswordChecker;
+  LConn: TFDConnection;
+  LUser: TUserPasswordChecker;
 begin
   inherited;
 
-  lConn := TFDConnection.Create(nil);
-  lConn.ConnectionDefName := 'Municipal_Library_Connection';
-  ActiveRecordConnectionsRegistry.AddDefaultConnection(lConn, True);
+  LConn := TFDConnection.Create(nil);
+  LConn.ConnectionDefName := 'Municipal_Library_Connection';
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(LConn, True);
 
-  lUser := TMVCActiveRecord
+  LUser := TMVCActiveRecord
     .GetOneByWhere<TUserPasswordChecker>('email = ? and not deleted',
     [AUserName], False);
 
   try
-    AIsValid := Assigned(lUser) and lUser.IsValid(APassword);
+    AIsValid := Assigned(LUser) and LUser.IsValid(APassword);
     if not AIsValid then
     begin
       Exit;
@@ -59,12 +59,12 @@ begin
       //the employee are recognized using their email
       AUserRoles.Add('employee');
     end;
-    lUser.LastLogin := Now;
-    lUser.Update;
+    LUser.LastLogin := Now;
+    LUser.Update;
     //Let's save in the custom claims the user's user_id
-    ASessionData.AddOrSetValue('user_id', lUser.ID.ToString);
+    ASessionData.AddOrSetValue('user_id', LUser.ID.ToString);
   finally
-    lUser.Free;
+    LUser.Free;
     ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
   end;
 end;
@@ -82,21 +82,20 @@ begin
   end
   else
   begin
-    //All the guests can invoke any actions which not belongs to
-    //TUserController, and however, can invoke all the "read" methods.
-    //Simply put, they cannot do an change on the users.
     {
-      TO DO:
-
       Permissions for GUESTS are:
       1. UserController - Change Password Only
-      2. Author - GET
-      3. Books - GET
+      2. Author - GET request only
+      3. Books - GET request only
     }
 
-    AIsAuthorized := (AControllerQualifiedClassName <>
-      'UserControllerU.TUserController') or
-      (AContext.Request.HTTPMethodAsString = 'GET');
+    AIsAuthorized := ((AControllerQualifiedClassName =
+      'UserControllerU.TUserController') and
+      (AActionName = 'ChangeCurrentUserPassword')) or
+      ((AControllerQualifiedClassName = 'AuthorControllerU.TAuthorController')
+      and (AContext.Request.HTTPMethodAsString = 'GET')) or
+      ((AControllerQualifiedClassName = 'BookControllerU.TBookController')
+      and (AContext.Request.HTTPMethodAsString = 'GET'));
   end;
 end;
 

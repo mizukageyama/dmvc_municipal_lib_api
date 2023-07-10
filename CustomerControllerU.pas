@@ -41,6 +41,7 @@ type
     [MVCSwagSummary('Customer', 'It creates a new customer and return its ' +
       'customer URI in the Location HTTP header.')]
     [MVCSwagAuthentication]
+    [MVCSwagParam(plBody, 'body', 'Customer data', TCustomer)]
     [MVCHTTPMethod([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure CreateCustomers;
@@ -48,6 +49,7 @@ type
     [MVCPath('/($CustomerID)')]
     [MVCSwagSummary('Customer', 'It updates a customer using its customer ID.')]
     [MVCSwagAuthentication]
+    [MVCSwagParam(plBody, 'body', 'Customer data', TCustomer)]
     [MVCHTTPMethod([httpPUT])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
@@ -65,40 +67,37 @@ implementation
 
 procedure TCustomerController.CreateCustomers;
 var
-  lCustomer: TCustomer;
+  LCustomer: TCustomer;
 begin
-  EnsureRole('employee');
-  lCustomer := Context.Request.BodyAs<TCustomer>;
+  LCustomer := Context.Request.BodyAs<TCustomer>;
   try
-    lCustomer.Insert;
-    Render201Created('/api/customers/' + lCustomer.ID.ToString);
+    LCustomer.Insert;
+    Render201Created('/api/customers/' + LCustomer.ID.ToString);
   finally
-    lCustomer.Free;
+    LCustomer.Free;
   end;
 end;
 
 procedure TCustomerController.DeleteCustomerByID(const CustomerID: Integer);
 var
-  lCustomer: TCustomer;
+  LCustomer: TCustomer;
 begin
-  EnsureRole('employee');
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(CustomerID, True);
+  LCustomer := TMVCActiveRecord.GetByPK<TCustomer>(CustomerID, True);
   try
-    lCustomer.Delete;
+    LCustomer.Delete;
   finally
-    lCustomer.Free;
+    LCustomer.Free;
   end;
   Render204NoContent('', 'Customer deleted');
 end;
 
 procedure TCustomerController.GetAllCustomers;
 var
-  lCustomers: TObjectList<TCustomer>;
+  LCustomers: TObjectList<TCustomer>;
 begin
-  EnsureRole('employee');
-  lCustomers := TMVCActiveRecord
+  LCustomers := TMVCActiveRecord
     .SelectRQL<TCustomer>('sort(+FirstName, +LastName)', -1);
-  Render(ObjectDict().Add('data', lCustomers));
+  Render(ObjectDict().Add('data', LCustomers));
 end;
 
 procedure TCustomerController.GetCustomerByID(const CustomerID: Integer);
@@ -109,31 +108,31 @@ end;
 
 procedure TCustomerController.GetCustomers;
 var
-  lTotalPages: Integer;
-  lCurrentPage: Integer;
-  lFirstRec: Integer;
-  lRQL: string;
-  lFilterQuery: string;
-  lCustomers: TObjectList<TCustomer>;
+  LTotalPages: Integer;
+  LCurrentPage: Integer;
+  LFirstRec: Integer;
+  LRQL: string;
+  LFilterQuery: string;
+  LCustomers: TObjectList<TCustomer>;
 begin
-  lCurrentPage := 0;
-  TryStrToInt(Context.Request.Params['page'], lCurrentPage);
-  lCurrentPage := Max(lCurrentPage, 1);
-  lFirstRec := (lCurrentPage - 1) * TSysConst.PAGE_SIZE;
+  LCurrentPage := 0;
+  TryStrToInt(Context.Request.Params['page'], LCurrentPage);
+  LCurrentPage := Max(LCurrentPage, 1);
+  LFirstRec := (LCurrentPage - 1) * TSysConst.PAGE_SIZE;
   { get additional filter query if params 'q' exists }
-  lFilterQuery := Context.Request.Params['q'];
-  lRQL := AppendIfNotEmpty(lFilterQuery, ';');
+  LFilterQuery := Context.Request.Params['q'];
+  LRQL := AppendIfNotEmpty(LFilterQuery, ';');
 
-  lRQL := Format('%ssort(+FirstName, +LastName);limit(%d,%d)',
-    [lRQL, lFirstRec, TSysConst.PAGE_SIZE]);
+  LRQL := Format('%ssort(+FirstName, +LastName);limit(%d,%d)',
+    [LRQL, LFirstRec, TSysConst.PAGE_SIZE]);
 
-  lTotalPages := TPagination.GetTotalPages<TCustomer>(lFilterQuery);
-  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(lRQL, -1);
+  LTotalPages := TPagination.GetTotalPages<TCustomer>(LFilterQuery);
+  LCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(LRQL, -1);
 
   Render(
     ObjectDict().Add(
       'data',
-      lCustomers,
+      LCustomers,
       procedure(const Obj: TObject; const Links: IMVCLinks)
         begin
           Links.AddRefLink.
@@ -147,25 +146,24 @@ begin
             Add(HATEOAS.REL, 'customer_lendings');
         end
     )
-    .Add('meta', TPagination.GetInfo(lCurrentPage, lTotalPages,
-      '/api/customers?%spage=%d', lRQl))
+    .Add('meta', TPagination.GetInfo(LCurrentPage, LTotalPages,
+      '/api/customers?%spage=%d', LRQL))
   );
 end;
 
 procedure TCustomerController.UpdateCustomerByID(const CustomerID: Integer);
 var
-  lCustomer: TCustomer;
+  LCustomer: TCustomer;
 begin
-  EnsureRole('employee');
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(CustomerID, false);
-  if Assigned(lCustomer) then
+  LCustomer := TMVCActiveRecord.GetByPK<TCustomer>(CustomerID, false);
+  if Assigned(LCustomer) then
   begin
     try
-      Context.Request.BodyFor<TCustomer>(lCustomer);
-      lCustomer.Update;
-      Render(HTTP_STATUS.OK, lCustomer, False);
+      Context.Request.BodyFor<TCustomer>(LCustomer);
+      LCustomer.Update;
+      Render(HTTP_STATUS.OK, LCustomer, False);
     finally
-      lCustomer.Free;
+      LCustomer.Free;
     end;
   end
   else

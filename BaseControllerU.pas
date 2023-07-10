@@ -13,8 +13,8 @@ type
       var Handled: Boolean); override;
     procedure OnAfterAction(Context: TWebContext; const AActionName: string);
       override;
-    procedure EnsureRole(const Role: string);
-    procedure EnsureOneOf(const Roles: TArray<string>);
+    procedure EnsureRole(const ARole: string);
+    procedure EnsureOneOf(const ARoles: TArray<string>);
   end;
 
 implementation
@@ -23,13 +23,13 @@ uses
   System.SysUtils, MVCFramework.Logger, System.StrUtils, Data.DB,
   FireDAC.Comp.Client, FireDAC.Stan.Param, MVCFramework.ActiveRecord;
 
-procedure TBaseController.EnsureOneOf(const Roles: TArray<string>);
+procedure TBaseController.EnsureOneOf(const ARoles: TArray<string>);
 var
-  lRole: string;
+  LRole: string;
 begin
-  for lRole in Roles do
+  for LRole in ARoles do
   begin
-    if Context.LoggedUser.Roles.Contains(lRole) then
+    if Context.LoggedUser.Roles.Contains(LRole) then
     begin
       Exit;
     end;
@@ -37,9 +37,9 @@ begin
   raise EMVCException.Create(HTTP_STATUS.Forbidden, 'Forbidden');
 end;
 
-procedure TBaseController.EnsureRole(const Role: string);
+procedure TBaseController.EnsureRole(const ARole: string);
 begin
-  if not Context.LoggedUser.Roles.Contains(Role) then
+  if not Context.LoggedUser.Roles.Contains(ARole) then
   begin
     raise EMVCException.Create(HTTP_STATUS.Forbidden, 'Forbidden');
   end;
@@ -55,12 +55,12 @@ end;
 procedure TBaseController.OnBeforeAction(Context: TWebContext;
   const AActionName: string; var Handled: Boolean);
 var
-  lConn: TFDConnection;
+  LConn: TFDConnection;
 begin
   inherited;
-  lConn := TFDConnection.Create(nil);
-  lConn.ConnectionDefName := 'Municipal_Library_Connection';
-  ActiveRecordConnectionsRegistry.AddDefaultConnection(lConn, True);
+  LConn := TFDConnection.Create(nil);
+  LConn.ConnectionDefName := 'Municipal_Library_Connection';
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(LConn, True);
 end;
 
 end.

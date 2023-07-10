@@ -39,6 +39,7 @@ type
     [MVCSwagSummary('Lending', 'It creates a new lending for a customer ' +
       'about a book.')]
     [MVCSwagAuthentication]
+    [MVCSwagParam(plBody, 'body', 'Lending data', TLending)]
     [MVCHTTPMethod([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure CreateLending(const CustomerID: Integer);
@@ -46,6 +47,7 @@ type
     [MVCPath('/($LendingID)')]
     [MVCSwagSummary('Lending', 'It updates lending information.')]
     [MVCSwagAuthentication]
+    [MVCSwagParam(plBody, 'body', 'Lending data', TLending)]
     [MVCHTTPMethod([httpPUT])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
@@ -63,42 +65,40 @@ implementation
 { TLendingController }
 procedure TLendingController.CreateLending(const CustomerID: Integer);
 var
-  lUserID: string;
-  lLending: TLending;
-  lLendingByBookId: TLending;
+  LUserID: string;
+  LLending: TLending;
+  LLendingByBookId: TLending;
 begin
-  EnsureRole('employee');
-  lLending := Context.Request.BodyAs<TLending>;
+  LLending := Context.Request.BodyAs<TLending>;
 
   {check if the book is already lent to another customer}
-  lLendingByBookId := TMVCActiveRecord
+  LLendingByBookId := TMVCActiveRecord
     .GetOneByWhere<TLending>('book_id = ? and lending_end IS NULL',
-    [lLending.BookID], false);
-  if Assigned(lLendingByBookId) then
+    [LLending.BookID], false);
+  if Assigned(LLendingByBookId) then
      raise EMVCException.Create(HTTP_STATUS.BadRequest,
         'Sorry, this book is lent to someone else.');
 
   try
-    if not Context.LoggedUser.CustomData.TryGetValue('user_id', lUserID) then
+    if not Context.LoggedUser.CustomData.TryGetValue('user_id', LUserID) then
     begin
       raise EMVCException.Create('UserID not found in customer data');
     end;
 
-    lLending.LendingStartUserID := lUserID.ToInt64;
-    lLending.LendingStart := Now;
-    lLending.LendingEnd.Clear;
-    lLending.CustomerID := CustomerID;
+    LLending.LendingStartUserID := LUserID.ToInt64;
+    LLending.LendingStart := Now;
+    LLending.LendingEnd.Clear;
+    LLending.CustomerID := CustomerID;
 
-    lLending.Insert;
-    Render201Created('/api/lendings/' + lLending.ID.ToString);
+    LLending.Insert;
+    Render201Created('/api/lendings/' + LLending.ID.ToString);
   finally
-    lLending.Free;
+    LLending.Free;
   end;
 end;
 
 procedure TLendingController.GetLendingHistoryByBookID(const BookID: Integer);
 begin
-  EnsureRole('employee');
   Render(
     ObjectDict().Add('data',
       TMVCActiveRecord.Where<TLendingRef>('book_id = ?', [BookID]),
@@ -119,42 +119,41 @@ end;
 
 procedure TLendingController.GetLendings;
 var
-  lTotalPages: Integer;
-  lCurrentPage: Integer;
-  lFirstRec: Integer;
-  lRQL: string;
-  lFilterQuery: string; //status
-  lLendings: TObjectList<TLendingRef>;
+  LTotalPages: Integer;
+  LCurrentPage: Integer;
+  LFirstRec: Integer;
+  LRQL: string;
+  LFilterQuery: string; //status
+  LLendings: TObjectList<TLendingRef>;
 begin
-  EnsureRole('employee');
-  lCurrentPage := 0;
-  TryStrToInt(Context.Request.Params['page'], lCurrentPage);
-  lCurrentPage := Max(lCurrentPage, 1);
-  lFirstRec := (lCurrentPage - 1) * TSysConst.PAGE_SIZE;
+  LCurrentPage := 0;
+  TryStrToInt(Context.Request.Params['page'], LCurrentPage);
+  LCurrentPage := Max(LCurrentPage, 1);
+  LFirstRec := (LCurrentPage - 1) * TSysConst.PAGE_SIZE;
 
   { get additional filter query if params 'q' exists }
-  lFilterQuery := Context.Request.Params['status'];
-  if not lFilterQuery.IsEmpty then
+  LFilterQuery := Context.Request.Params['status'];
+  if not LFilterQuery.IsEmpty then
   begin
-     var status := lFilterQuery;
+     var status := LFilterQuery;
      if status = 'open' then
-       lRQL := 'eq(lending_end, null)'
+       LRQL := 'eq(lending_end, null)'
      else if status = 'closed' then
        lRQL := 'ne(lending_end, null)';
-    lFilterQuery := 'status=' + lFilterQuery;
+    LFilterQuery := 'status=' + LFilterQuery;
   end;
-  lTotalPages := TPagination.GetTotalPages<TLendingRef>(lRQL);
+  LTotalPages := TPagination.GetTotalPages<TLendingRef>(LRQL);
 
-  lRQL := AppendIfNotEmpty(lRQL, ';');
-  lRQL := Format('%ssort(-LendingStart, +ID);limit(%d,%d)',
-    [lRQL, lFirstRec, TSysConst.PAGE_SIZE]);
+  LRQL := AppendIfNotEmpty(LRQL, ';');
+  LRQL := Format('%ssort(-LendingStart, +ID);limit(%d,%d)',
+    [LRQL, LFirstRec, TSysConst.PAGE_SIZE]);
 
-  lLendings := TMVCActiveRecord.SelectRQL<TLendingRef>(lRQL, -1);
+  LLendings := TMVCActiveRecord.SelectRQL<TLendingRef>(LRQL, -1);
 
   Render(
     ObjectDict().Add(
       'data',
-      lLendings,
+      LLendings,
       procedure(const Obj: TObject; const Links: IMVCLinks)
         begin
           Links.AddRefLink.
@@ -168,8 +167,8 @@ begin
             Add(HATEOAS.REL, 'customer_lendings');
         end
     )
-    .Add('meta', TPagination.GetInfo(lCurrentPage, lTotalPages,
-      '/api/lendings?%spage=%d', lFilterQuery, false))
+    .Add('meta', TPagination.GetInfo(LCurrentPage, LTotalPages,
+      '/api/lendings?%spage=%d', LFilterQuery, false))
   );
 end;
 
@@ -195,58 +194,56 @@ end;
 
 procedure TLendingController.TerminateLending(const LendingID: Integer);
 var
-  lLending: TLending;
-  lUserID: string;
+  LLending: TLending;
+  LUserID: string;
 begin
-  EnsureRole('employee');
-  lLending := TMVCActiveRecord.GetByPK<TLending>(LendingID);
+  LLending := TMVCActiveRecord.GetByPK<TLending>(LendingID);
   try
-    if not Context.LoggedUser.CustomData.TryGetValue('user_id', lUserID) then
+    if not Context.LoggedUser.CustomData.TryGetValue('user_id', LUserID) then
     begin
       raise EMVCException.Create('UserID not found in custom data');
     end;
 
-    if lLending.LendingEnd.HasValue then
+    if LLending.LendingEnd.HasValue then
     begin
       raise EMVCException.Create(HTTP_STATUS.BadRequest,
         'Lending already terminated');
     end;
 
-    lLending.LendingEnd := Now;
-    lLending.LendingEndUserID := lUserID.ToInt64;
-    lLending.Update;
+    LLending.LendingEnd := Now;
+    LLending.LendingEndUserID := lUserID.ToInt64;
+    LLending.Update;
     Render204NoContent('/api/lendings/' + LendingID.ToString,
       'Lending Terminated Correctly');
   finally
-    lLending.Free;
+    LLending.Free;
   end;
 end;
 
 
 procedure TLendingController.UpdateLendingByID(const LendingID: Integer);
 var
-  lLending: TLending;
-  lLendingByBookId: TLending;
+  LLending: TLending;
+  LLendingByBookId: TLending;
 begin
-  EnsureRole('employee');
-  lLending := TMVCActiveRecord.GetByPK<TLending>(LendingID, false);
+  LLending := TMVCActiveRecord.GetByPK<TLending>(LendingID, false);
 
   {check if the book is already lent to another customer}
-  lLendingByBookId := TMVCActiveRecord
+  LLendingByBookId := TMVCActiveRecord
     .GetOneByWhere<TLending>('book_id = ? and lending_end IS NULL',
-    [lLending.BookID], false);
-  if Assigned(lLendingByBookId) then
+    [LLending.BookID], false);
+  if Assigned(LLendingByBookId) then
      raise EMVCException.Create(HTTP_STATUS.BadRequest,
         'Sorry, this book is lent to someone else.');
 
-  if Assigned(lLending) then
+  if Assigned(LLending) then
   begin
     try
-      Context.Request.BodyFor<TLending>(lLending);
-      lLending.Update;
-      Render(HTTP_STATUS.OK, lLending, False);
+      Context.Request.BodyFor<TLending>(LLending);
+      LLending.Update;
+      Render(HTTP_STATUS.OK, LLending, False);
     finally
-      lLending.Free;
+      LLending.Free;
     end;
   end
   else

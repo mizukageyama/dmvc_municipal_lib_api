@@ -19,80 +19,70 @@ type
   TPagination = class(TObject)
   public
     class function GetTotalPages<T: TMVCActiveRecord, constructor>
-      (lRQL: string): Integer;
-    class function GetInfo(const CurrPageNumber: UInt32;
-      const TotalPage: UInt32; const URITemplate, FilterQuery: string;
-      const ForRQLQuery: boolean = true):TMVCStringDictionary;
+      (ARQL: string): Integer;
+    class function GetInfo(const ACurrPageNumber: UInt32;
+      const ATotalPage: UInt32; const AURITemplate, AFilterQuery: string;
+      const AForRQLQuery: boolean = true):TMVCStringDictionary;
   end;
 
-function AppendIfNotEmpty(const lQueryParams, toAppend: string): string;
-function AuthorBody: TJSONObject;
+function AppendIfNotEmpty(const AQueryParams, AtoAppend: string): string;
 
 implementation
 
-
-function AuthorBody: TJSONObject;
+function AppendIfNotEmpty(const AQueryParams, AtoAppend: string): string;
 var
-  JsonData: TJSONObject;
-begin
-  JsonData := TJSONObject.ParseJSONValue('{"key1": "value1", "key2": "value2"}') as TJSONObject;
-  Result := JsonData;
-end;
-
-function AppendIfNotEmpty(const lQueryParams, toAppend: string): string;
-var
-  query: string;
+  Query: string;
 begin
   { temporarily assign query param here }
   query := '';
-  if not lQueryParams.IsEmpty then
+  if not AQueryParams.IsEmpty then
     { if params exist, add semicolon}
-    query := lQueryParams + toAppend;
+    Query := AQueryParams + AtoAppend;
   { return the additional query to be added to lRQL }
-  Result := query;
+  Result := Query;
 end;
 
 { TPagination }
-class function TPagination.GetTotalPages<T>(lRQL: string): Integer;
+class function TPagination.GetTotalPages<T>(ARQL: String): Integer;
 var
-  lRecordCount: Integer;
+  LRecordCount: Integer;
 begin
-  lRecordCount := TMVCActiveRecord.Count<T>(lRQL);
-  Result := Ceil(lRecordCount / TSysConst.PAGE_SIZE);
+  LRecordCount := TMVCActiveRecord.Count<T>(ARQL);
+  Result := Ceil(LRecordCount / TSysConst.PAGE_SIZE);
 end;
 
-class function TPagination.GetInfo(const CurrPageNumber: UInt32;
-  const TotalPage: UInt32; const URITemplate, FilterQuery: string;
-  const ForRQLQuery: boolean = true): TMVCStringDictionary;
+class function TPagination.GetInfo(const ACurrPageNumber: UInt32;
+  const ATotalPage: UInt32; const AURITemplate, AFilterQuery: String;
+  const AForRQLQuery: Boolean = true): TMVCStringDictionary;
 var
-  lQuery: string;
-  lInfoKeys: array of string;
-  lInfoValues: array of string;
+  LQuery: string;
+  LInfoKeys: array of string;
+  LInfoValues: array of string;
 begin
-  Insert('curr_page', lInfoKeys, 0);
-  Insert(CurrPageNumber.ToString(), lInfoValues, 0);
+  Insert('curr_page', LInfoKeys, 0);
+  Insert(ACurrPageNumber.ToString(), LInfoValues, 0);
 
-  Insert('total_page', lInfoKeys, 0);
-  Insert(TotalPage.ToString(), lInfoValues, 0);
+  Insert('total_page', LInfoKeys, 0);
+  Insert(ATotalPage.ToString(), LInfoValues, 0);
 
   { get additional filter query if params 'q' exists }
-  if (not FilterQuery.IsEmpty) and ForRQLQuery then
-    lQuery := 'q=' + AppendIfNotEmpty(FilterQuery, '&')
+  if (not AFilterQuery.IsEmpty) and AForRQLQuery then
+    LQuery := 'q=' + AppendIfNotEmpty(AFilterQuery, '&')
   else
-    lQuery := FilterQuery;
+    LQuery := AFilterQuery;
 
-  if CurrPageNumber > 1 then
+  if ACurrPageNumber > 1 then
   begin
-    Insert('prev_page_uri', lInfoKeys, 0);
-    Insert(Format(URITemplate, [lQuery, (CurrPageNumber - 1)]), lInfoValues, 0);
+    Insert('prev_page_uri', LInfoKeys, 0);
+    Insert(Format(AURITemplate, [LQuery, (ACurrPageNumber - 1)]), LInfoValues, 0);
   end;
 
-  if TotalPage > CurrPageNumber then
+  if ATotalPage > ACurrPageNumber then
   begin
-    Insert('next_page_uri', lInfoKeys, 0);
-    Insert(Format(URITemplate, [lQuery, (CurrPageNumber + 1)]), lInfoValues, 0);
+    Insert('next_page_uri', LInfoKeys, 0);
+    Insert(Format(AURITemplate, [LQuery, (ACurrPageNumber + 1)]), LInfoValues, 0);
   end;
-  Result := StrDict(lInfoKeys, lInfoValues);
+  Result := StrDict(LInfoKeys, LInfoValues);
 end;
 
 end.

@@ -25,6 +25,7 @@ type
     [MVCSwagSummary('User', 'It creates a new user and returns the new user ' +
       'URI.')]
     [MVCSwagAuthentication]
+    [MVCSwagParam(plBody, 'body', 'User data', TUserWithPassword)]
     [MVCHTTPMethod([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure CreateUser;
@@ -39,6 +40,7 @@ type
     [MVCPath('/($UserID)')]
     [MVCSwagSummary('User', 'It updates a user using its user ID.')]
     [MVCSwagAuthentication]
+    [MVCSwagParam(plBody, 'body', 'User data', TUser)]
     [MVCHTTPMethod([httpPUT])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
@@ -55,6 +57,7 @@ type
     [MVCPath('/me/password')]
     [MVCSwagSummary('User', 'Any user can change its password after login.')]
     [MVCSwagAuthentication]
+    [MVCSwagParam(plBody, 'body', 'User data', TUserWithPassword)]
     [MVCHTTPMethod([httpPUT])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure ChangeCurrentUserPassword;
@@ -69,67 +72,64 @@ uses
 
 procedure TUserController.ChangeCurrentUserPassword;
 var
-  lUser: TUserWithPassword;
-  lJSONObject: TJSONObject;
+  LUser: TUserWithPassword;
+  LJSONObject: TJSONObject;
 begin
-  EnsureOneOf(['employee', 'guest']);
   lJSONObject := StrToJSONObject(Context.Request.Body);
   try
-    lUser := TMVCActiveRecord.GetOneByWhere<TUserWithPassword>(
+    LUser := TMVCActiveRecord.GetOneByWhere<TUserWithPassword>(
       'email = ? and not deleted', [Context.LoggedUser.UserName], True);
-   lUser.Password := lJSONObject.S['pwd'];
-   lUser.Update;
-   Render204NoContent('/api/users/' + lUser.ID.ToString,
+   LUser.Password := LJSONObject.S['pwd'];
+   LUser.Update;
+   Render204NoContent('/api/users/' + LUser.ID.ToString,
      'Password Changed Successfully');
  finally
-   lUser.Free;
+   LUser.Free;
  end;
 end;
 
 procedure TUserController.CreateUser;
 var
-  lUser: TUserWithPassword;
+  LUser: TUserWithPassword;
 begin
-  EnsureRole('employee');
-  lUser := Context.Request.BodyAs<TUserWithPassword>;
+  LUser := Context.Request.BodyAs<TUserWithPassword>;
   try
     try
-      lUser.Deleted := False;
-      lUser.Insert;
+      LUser.Deleted := False;
+      LUser.Insert;
     except
       on E: EFDException do
       begin
         if E.Message.ToLower.Contains('user_email_idx') then
         begin
-          raise Exception.CreateFmt('User "%s" already exists', [lUser.Email]);
+          raise Exception.CreateFmt('User "%s" already exists', [LUser.Email]);
         end;
         raise;
       end;
     end;
-    Render201Created('/api/users/' + lUser.ID.ToString);
+    Render201Created('/api/users/' + LUser.ID.ToString);
   finally
-    lUser.Free;
+    LUser.Free;
   end;
 end;
 
 procedure TUserController.DeleteUserByID(const UserID: Integer);
 var
-  lUser: TUser;
+  LUser: TUser;
 begin
-  EnsureRole('employee');
   if Context.LoggedUser.CustomData['user_id'].ToInteger = UserID then
   begin
     raise EMVCException.Create(HTTP_STATUS.Unauthorized,
       'Current user cannot be deleted');
   end;
 
-  lUser := TMVCActiveRecord.GetByPK<TUser>(UserID, True);
+  LUser := TMVCActiveRecord.GetByPK<TUser>(UserID, True);
   try
-    lUser.Deleted := True;
-    lUser.Update;
+    LUser.Deleted := True;
+    LUser.Update;
     Render204NoContent('', 'User deleted');
   finally
-    lUser.Free;
+    LUser.Free;
   end;
 end;
 
@@ -142,39 +142,36 @@ end;
 
 procedure TUserController.GetUsers;
 var
-  lTotalPages: Integer;
-  lCurrentPage: Integer;
-  lFirstRec: Integer;
-  lRQL: string;
-  lFilterQuery: string;
-  lUsers: TObjectList<TUser>;
+  LTotalPages: Integer;
+  LCurrentPage: Integer;
+  LFirstRec: Integer;
+  LRQL: string;
+  LFilterQuery: string;
+  LUsers: TObjectList<TUser>;
 begin
-  { if current user doesn't have "employee" role, raise an exception }
-  EnsureRole('employee');
-
-  lCurrentPage := 0;
-  TryStrToInt(Context.Request.Params['page'], lCurrentPage);
-  lCurrentPage := Max(lCurrentPage, 1);
-  lFirstRec := (lCurrentPage - 1) * TSysConst.PAGE_SIZE;
+  LCurrentPage := 0;
+  TryStrToInt(Context.Request.Params['page'], LCurrentPage);
+  LCurrentPage := Max(LCurrentPage, 1);
+  LFirstRec := (LCurrentPage - 1) * TSysConst.PAGE_SIZE;
   { get additional filter query if params 'q' exists }
-  lFilterQuery := Context.Request.Params['q'];
-  if lFilterQuery.IsEmpty then
-    lFilterQuery := 'ne(deleted, 1)'
+  LFilterQuery := Context.Request.Params['q'];
+  if LFilterQuery.IsEmpty then
+    LFilterQuery := 'ne(deleted, 1)'
   else
-    lFilterQuery := 'and(' + AppendIfNotEmpty(lFilterQuery, ',ne(deleted, 1))');
+    LFilterQuery := 'and(' + AppendIfNotEmpty(LFilterQuery, ',ne(deleted, 1))');
 
-  lRQL := AppendIfNotEmpty(lFilterQuery, ';');
+  LRQL := AppendIfNotEmpty(LFilterQuery, ';');
 
-  lRQL := Format('%ssort(+Email, +ID);limit(%d,%d)',
-    [lRQL, lFirstRec, TSysConst.PAGE_SIZE]);
+  LRQL := Format('%ssort(+Email, +ID);limit(%d,%d)',
+    [LRQL, LFirstRec, TSysConst.PAGE_SIZE]);
 
-  lTotalPages := TPagination.GetTotalPages<TUser>(lFilterQuery);
-  lUsers := TMVCActiveRecord.SelectRQL<TUser>(lRQL, -1);
+  LTotalPages := TPagination.GetTotalPages<TUser>(LFilterQuery);
+  LUsers := TMVCActiveRecord.SelectRQL<TUser>(LRQL, -1);
 
   Render(
     ObjectDict().Add(
       'data',
-      lUsers,
+      LUsers,
       procedure(const User: TObject; const Links: IMVCLinks)
       begin
         Links.AddRefLink.
@@ -183,8 +180,8 @@ begin
           Add(HATEOAS.REL, 'self');
       end
     )
-    .Add('meta', TPagination.GetInfo(lCurrentPage, lTotalPages,
-      '/api/users?%spage=%d', lRQl))
+    .Add('meta', TPagination.GetInfo(LCurrentPage, LTotalPages,
+      '/api/users?%spage=%d', LRQL))
   );
 end;
 
@@ -192,7 +189,6 @@ procedure TUserController.UpdateUserByID(const UserID: Integer);
 var
   lUser: TUser;
 begin
-  EnsureRole('employee');
   lUser := TMVCActiveRecord.GetByPK<TUser>(UserID, false);
   if Assigned(lUser) then
   begin

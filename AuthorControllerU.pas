@@ -54,6 +54,7 @@ type
     [MVCPath('/($AuthorID)')]
     [MVCSwagSummary('Author', 'It updates author using its author ID.')]
     [MVCSwagAuthentication]
+    [MVCSwagParam(plBody, 'body', 'Author data', TAuthor)]
     [MVCHTTPMethod([httpPUT])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
@@ -76,42 +77,40 @@ uses
 
 procedure TAuthorController.CreateAuthor;
 var
-  lAuthor: TAuthor;
+  LAuthor: TAuthor;
 begin
-  EnsureRole('employee');
   lAuthor := Context.Request.BodyAs<TAuthor>;
   try
-    lAuthor.Insert;
+    LAuthor.Insert;
     var AuthorID := lAuthor.ID.ToString;
     Render(StrDict(
       ['id', 'uri'],
       [AuthorID, Format('/api/authors/%s', [AuthorID])]
     ));
   finally
-    lAuthor.Free;
+    LAuthor.Free;
   end;
 end;
 
 procedure TAuthorController.DeleteAuthorByID(const AuthorID: Integer);
 var
-  lAuthor: TAuthor;
+  LAuthor: TAuthor;
 begin
-  EnsureRole('employee');
-  lAuthor := TMVCActiveRecord.GetByPK<TAuthor>(AuthorID, True);
+  LAuthor := TMVCActiveRecord.GetByPK<TAuthor>(AuthorID, True);
   try
-    lAuthor.Delete;
+    LAuthor.Delete;
   finally
-    lAuthor.Free;
+    LAuthor.Free;
   end;
   Render204NoContent('', 'Author deleted');
 end;
 
 procedure TAuthorController.GetAllAuthors;
 var
-  lAuthors: TObjectList<TAuthor>;
+  LAuthor: TObjectList<TAuthor>;
 begin
-  lAuthors := TMVCActiveRecord.SelectRQL<TAuthor>('sort(+FullName, +ID)', -1);
-  Render(ObjectDict().Add('data', lAuthors));
+  LAuthor := TMVCActiveRecord.SelectRQL<TAuthor>('sort(+FullName, +ID)', -1);
+  Render(ObjectDict().Add('data', LAuthor));
 end;
 
 procedure TAuthorController.GetAuthorByID(const AuthorID: Integer);
@@ -122,26 +121,26 @@ end;
 
 procedure TAuthorController.GetAuthors;
 var
-  lTotalPages: Integer;
-  lCurrentPage: Integer;
-  lFirstRec: Integer;
-  lRQL: string;
-  lFilterQuery: string;
-  lAuthors: TObjectList<TAuthor>;
+  LTotalPages: Integer;
+  LCurrentPage: Integer;
+  LFirstRec: Integer;
+  LRQL: string;
+  LFilterQuery: string;
+  LAuthors: TObjectList<TAuthor>;
 begin
-  lCurrentPage := 0;
-  TryStrToInt(Context.Request.Params['page'], lCurrentPage);
-  lCurrentPage := Max(lCurrentPage, 1);
-  lFirstRec := (lCurrentPage - 1) * TSysConst.PAGE_SIZE;
+  LCurrentPage := 0;
+  TryStrToInt(Context.Request.Params['page'], LCurrentPage);
+  LCurrentPage := Max(LCurrentPage, 1);
+  LFirstRec := (LCurrentPage - 1) * TSysConst.PAGE_SIZE;
   { get additional filter query if params 'q' exists }
-  lFilterQuery := Context.Request.Params['q'];
-  lRQL := AppendIfNotEmpty(lFilterQuery, ';');
+  LFilterQuery := Context.Request.Params['q'];
+  LRQL := AppendIfNotEmpty(LFilterQuery, ';');
 
-  lRQL := Format('%ssort(+FullName, +ID);limit(%d,%d)',
-    [lRQL, lFirstRec, TSysConst.PAGE_SIZE]);
+  LRQL := Format('%ssort(+FullName, +ID);limit(%d,%d)',
+    [LRQL, LFirstRec, TSysConst.PAGE_SIZE]);
 
-  lTotalPages := TPagination.GetTotalPages<TAuthor>(lFilterQuery);
-  lAuthors := TMVCActiveRecord.SelectRQL<TAuthor>(lRQL, -1);
+  LTotalPages := TPagination.GetTotalPages<TAuthor>(LFilterQuery);
+  LAuthors := TMVCActiveRecord.SelectRQL<TAuthor>(LRQL, -1);
 
   Render(
     ObjectDict().Add(
@@ -160,8 +159,8 @@ begin
           Add(HATEOAS.REL, 'books');
       end
     )
-    .Add('meta', TPagination.GetInfo(lCurrentPage, lTotalPages,
-      '/api/authors?%spage=%d', lRQl))
+    .Add('meta', TPagination.GetInfo(LCurrentPage, LTotalPages,
+      '/api/authors?%spage=%d', LRQl))
   );
 end;
 
@@ -191,19 +190,17 @@ end;
 
 procedure TAuthorController.UpdateAuthorByID(const AuthorID: Integer);
 var
-  lAuthor: TAuthor;
+  LAuthor: TAuthor;
 begin
-  EnsureRole('employee');
-
-  lAuthor := TMVCActiveRecord.GetByPK<TAuthor>(AuthorID, false);
-  if Assigned(lAuthor) then
+  LAuthor := TMVCActiveRecord.GetByPK<TAuthor>(AuthorID, false);
+  if Assigned(LAuthor) then
   begin
     try
-      Context.Request.BodyFor<TAuthor>(lAuthor);
-      lAuthor.Update;
+      Context.Request.BodyFor<TAuthor>(LAuthor);
+      LAuthor.Update;
       Render(HTTP_STATUS.OK, lAuthor, False);
     finally
-      lAuthor.Free;
+      LAuthor.Free;
     end;
   end
   else
