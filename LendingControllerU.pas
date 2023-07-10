@@ -6,7 +6,7 @@ uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
   MVCFramework.ActiveRecord, BaseControllerU, System.SysUtils,
   MVCFramework.Logger, System.StrUtils, EntitiesU, System.Math, CommonsU,
-  System.Generics.Collections;
+  System.Generics.Collections, MVCFramework.Swagger.Commons;
 
 type
   [MVCPath('/api/lendings')]
@@ -14,31 +14,46 @@ type
   public
     [MVCPath]
     [MVCSwagSummary('Lending', 'It returns all lendings for all customers.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetLendings;
 
     [MVCPath('/customers/($CustomerID)')]
-    [MVCSwagSummary('Lending', 'It returns the list of all lendings for a customer.')]
+    [MVCSwagSummary('Lending', 'It returns the list of all lendings for a ' +
+      'customer.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetLendingsByCustomerID(const CustomerID: Integer);
 
     [MVCPath('/books/($BookID)')]
-    [MVCSwagSummary('Lending', 'It returns all the lendings for a specified book.')]
+    [MVCSwagSummary('Lending', 'It returns all the lendings for a ' +
+      'specified book.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetLendingHistoryByBookID(const BookID: Integer);
 
     [MVCPath('/customers/($CustomerID)')]
-    [MVCSwagSummary('Lending', 'It creates a new lending for a customer about a book.')]
+    [MVCSwagSummary('Lending', 'It creates a new lending for a customer ' +
+      'about a book.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpPOST])]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure CreateLending(const CustomerID: Integer);
 
     [MVCPath('/($LendingID)')]
     [MVCSwagSummary('Lending', 'It updates lending information.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpPUT])]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure UpdateLendingByID(const LendingID: Integer);
 
     [MVCPath('/terminated/($LendingID)')]
     [MVCSwagSummary('Lending', 'It terminates a lending.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpPUT])]
     procedure TerminateLending(const LendingID: Integer);
   end;

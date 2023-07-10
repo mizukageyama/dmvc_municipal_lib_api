@@ -6,15 +6,17 @@ uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
   MVCFramework.ActiveRecord, FireDAC.ConsoleUI.Wait, BaseControllerU,
   System.SysUtils, MVCFramework.Logger, System.StrUtils, EntitiesU,
-  System.Generics.Collections, System.Math, CommonsU;
+  System.Generics.Collections, System.Math, CommonsU,
+  MVCFramework.Swagger.Commons;
 
 type
   [MVCPath('/api/customers')]
   TCustomerController = class(TBaseController)
   public
     [MVCPath]
-    [MVCSwagSummary('Customer', 'It returns the list of all the customers with a ref link to ' +
-      'get all lendings for each customer.')]
+    [MVCSwagSummary('Customer', 'It returns the list of all the customers ' +
+      'with a ref link to get all lendings for each customer.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetCustomers;
@@ -22,25 +24,30 @@ type
     [MVCPath('/all')]
     [MVCSwagSummary('Customer',
       'It returns the list of all the customers without pagination')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetAllCustomers;
 
     [MVCPath('/($CustomerID)')]
-    [MVCSwagSummary('Customer', 'It returns a single customer with a ref link to its borrowings.')]
+    [MVCSwagSummary('Customer', 'It returns a single customer with a ref link' +
+      'to its borrowings.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetCustomerByID(const CustomerID: Integer);
 
     [MVCPath]
-    [MVCSwagSummary('Customer', 'It creates a new customer and return its customer URI in the ' +
-      'Location HTTP header.')]
+    [MVCSwagSummary('Customer', 'It creates a new customer and return its ' +
+      'customer URI in the Location HTTP header.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure CreateCustomers;
 
     [MVCPath('/($CustomerID)')]
     [MVCSwagSummary('Customer', 'It updates a customer using its customer ID.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpPUT])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
@@ -48,6 +55,7 @@ type
 
     [MVCPath('/($CustomerID)')]
     [MVCSwagSummary('Customer', 'It deletes a customer using its customer ID.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpDELETE])]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure DeleteCustomerByID(const CustomerID: Integer);
@@ -87,6 +95,7 @@ procedure TCustomerController.GetAllCustomers;
 var
   lCustomers: TObjectList<TCustomer>;
 begin
+  EnsureRole('employee');
   lCustomers := TMVCActiveRecord
     .SelectRQL<TCustomer>('sort(+FirstName, +LastName)', -1);
   Render(ObjectDict().Add('data', lCustomers));
@@ -94,24 +103,8 @@ end;
 
 procedure TCustomerController.GetCustomerByID(const CustomerID: Integer);
 begin
-  Render(
-    ObjectDict()
-      .Add('data',
-        TMVCActiveRecord.Where<TCustomer>('id = ?', [CustomerID]),
-        procedure(const Obj: TObject; const Links: IMVCLinks)
-        begin
-          Links.AddRefLink.
-            Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
-            Add(HATEOAS.HREF, Format('/api/customers/%d', [TCustomer(Obj).ID])).
-            Add(HATEOAS.REL, 'self');
-          Links.AddRefLink.
-            Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
-            Add(HATEOAS.HREF, Format('/api/lendings/customers/%d',
-              [Tcustomer(Obj).ID])).
-            Add(HATEOAS.REL, 'customer_lendings');
-        end
-      )
-  );
+  Render(ObjectDict().Add('data',
+    TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [CustomerID])));
 end;
 
 procedure TCustomerController.GetCustomers;

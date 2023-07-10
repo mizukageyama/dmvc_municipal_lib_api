@@ -4,7 +4,7 @@ interface
 
 uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
-  EntitiesU, MVCFramework.ActiveRecord, BaseControllerU,  System.JSON,
+  EntitiesU, MVCFramework.ActiveRecord, BaseControllerU, System.JSON,
   MVCFramework.Swagger.Commons;
 
 type
@@ -12,41 +12,56 @@ type
   TAuthorController = class(TBaseController)
   public
     [MVCPath]
-    [MVCSwagSummary('Author', 'It returns all the authors with some information about the ' +
-      'books written by each of then and reference links to get the full ' +
-      'book data. It allows filter.')]
+    [MVCSwagSummary('Author', 'It returns all the authors with some ' +
+      'information about the books written by each of then and reference ' +
+      'links to get the full book data. It allows filter.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetAuthors;
 
     [MVCPath('/all')]
     [MVCSwagSummary('Author', 'Returns all authors without pagination')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetAllAuthors;
 
     [MVCPath('/($AuthorID)')]
-    [MVCSwagSummary('Author', 'It returns a single author using its author ID.')]
+    [MVCSwagSummary('Author', 'It returns a single author using its ' +
+      'author ID.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetAuthorByID(const AuthorID: Integer);
 
     [MVCPath('/($AuthorID)/books')]
     [MVCSwagSummary('Author', 'It returns all the books written by an author.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetBooksByAuthorID(const AuthorID: Integer);
 
     [MVCPath]
-    [MVCSwagSummary('Author', 'It creates a new author and returns the new author URI ' +
-      'in the Location HTTP header')]
-    [MVCHTTPMethod([httpPOST])]
+    [MVCSwagSummary('Author', 'It creates a new author and returns the new ' +
+      'author URI in the Location HTTP header')]
+    [MVCSwagAuthentication]
     [MVCSwagParam(plBody, 'body', 'Author data', TAuthor)]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure CreateAuthor;
 
     [MVCPath('/($AuthorID)')]
     [MVCSwagSummary('Author', 'It updates author using its author ID.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpPUT])]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure UpdateAuthorByID(const AuthorID: Integer);
 
     [MVCPath('/($AuthorID)')]
     [MVCSwagSummary('Author', 'It deletes author using its author ID.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpDELETE])]
     procedure DeleteAuthorByID(const AuthorID: Integer);
   end;
@@ -101,23 +116,8 @@ end;
 
 procedure TAuthorController.GetAuthorByID(const AuthorID: Integer);
 begin
-  Render(
-    ObjectDict().Add('data',
-      TMVCActiveRecord.Where<TAuthor>('id = ?', [AuthorID]),
-      procedure(const Author: TObject; const Links: IMVCLinks)
-      begin
-        Links.AddRefLink.
-          Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
-          Add(HATEOAS.HREF, '/api/authors/' + TAuthor(Author).ID.ToString).
-          Add(HATEOAS.REL, 'self');
-        Links.AddRefLink.
-          Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
-          Add(HATEOAS.HREF, '/api/authors/' +
-            TAuthor(Author).ID.ToString + '/books').
-          Add(HATEOAS.REL, 'books');
-      end
-    )
-  );
+  Render(ObjectDict().Add('data',
+    TMVCActiveRecord.GetOneByWhere<TAuthor>('id = ?', [AuthorID])));
 end;
 
 procedure TAuthorController.GetAuthors;

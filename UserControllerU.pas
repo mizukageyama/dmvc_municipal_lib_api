@@ -6,7 +6,8 @@ uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
   MVCFramework.ActiveRecord, BaseControllerU, System.SysUtils,
   MVCFramework.Logger, System.StrUtils, EntitiesU,
-  System.Math, CommonsU, FireDAC.Stan.Error, System.Generics.Collections;
+  System.Math, CommonsU, FireDAC.Stan.Error, System.Generics.Collections,
+  MVCFramework.Swagger.Commons;
 
 type
   [MVCPath('/api/users')]
@@ -15,33 +16,47 @@ type
     [MVCPath]
     [MVCSwagSummary('User', 'It returns all the users not logically deleted ' +
       '(password hash is not shown) and allows to apply a filter.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetUsers;
 
     [MVCPath]
-    [MVCSwagSummary('User', 'It creates a new user and returns the new user URI.')]
+    [MVCSwagSummary('User', 'It creates a new user and returns the new user ' +
+      'URI.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpPOST])]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure CreateUser;
 
     [MVCPath('/($UserID)')]
     [MVCSwagSummary('User', 'It returns a single user using its user ID.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure GetUserByID(const UserID: Integer);
 
     [MVCPath('/($UserID)')]
     [MVCSwagSummary('User', 'It updates a user using its user ID.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpPUT])]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure UpdateUserByID(const UserID: Integer);
 
     [MVCPath('/($UserID)')]
-    [MVCSwagSummary('User', 'It logically deletes a user using its user ID. The record ' +
-      'is not physically deleted but its deleted field is set to True.')]
+    [MVCSwagSummary('User', 'It logically deletes a user using its user ID. ' +
+      'The record is not physically deleted but its deleted field is ' +
+      'set to True.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpDELETE])]
     procedure DeleteUserByID(const UserID: Integer);
 
     [MVCPath('/me/password')]
     [MVCSwagSummary('User', 'Any user can change its password after login.')]
+    [MVCSwagAuthentication]
     [MVCHTTPMethod([httpPUT])]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure ChangeCurrentUserPassword;
   end;
 
@@ -55,19 +70,20 @@ uses
 procedure TUserController.ChangeCurrentUserPassword;
 var
   lUser: TUserWithPassword;
+  lJSONObject: TJSONObject;
 begin
   EnsureOneOf(['employee', 'guest']);
-  lUser := Context.Request.BodyAs<TUserWithPassword>;
+  lJSONObject := StrToJSONObject(Context.Request.Body);
   try
     lUser := TMVCActiveRecord.GetOneByWhere<TUserWithPassword>(
       'email = ? and not deleted', [Context.LoggedUser.UserName], True);
-
+   lUser.Password := lJSONObject.S['pwd'];
    lUser.Update;
-   Render204NoContent('/api/users/' + lUser.ID.ToString);
+   Render204NoContent('/api/users/' + lUser.ID.ToString,
+     'Password Changed Successfully');
  finally
    lUser.Free;
  end;
-
 end;
 
 procedure TUserController.CreateUser;
@@ -121,16 +137,7 @@ procedure TUserController.GetUserByID(const UserID: Integer);
 begin
   Render(
     ObjectDict().Add('data',
-      TMVCActiveRecord.Where<TUser>('id = ?', [UserID]),
-      procedure(const User: TObject; const Links: IMVCLinks)
-      begin
-        Links.AddRefLink.
-          Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON).
-          Add(HATEOAS.HREF, '/api/users/').
-          Add(HATEOAS.REL, 'list');
-      end
-    )
-  );
+      TMVCActiveRecord.GetOneByWhere<TUser>('id = ?', [UserID])));
 end;
 
 procedure TUserController.GetUsers;

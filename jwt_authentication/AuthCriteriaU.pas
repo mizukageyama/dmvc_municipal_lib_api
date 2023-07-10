@@ -29,9 +29,9 @@ begin
   AAuthenticationRequired := True;
 end;
 
-procedure TAuthCriteria.OnAuthentication(const AContext: TWebContext; const AUserName,
-  APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean;
-  const ASessionData: TDictionary<string, string>);
+procedure TAuthCriteria.OnAuthentication(const AContext: TWebContext;
+  const AUserName, APassword: string; AUserRoles: TList<string>;
+  var AIsValid: Boolean; const ASessionData: TDictionary<string, string>);
 var
   lConn: TFDConnection;
   lUser: TUserPasswordChecker;
@@ -85,6 +85,15 @@ begin
     //All the guests can invoke any actions which not belongs to
     //TUserController, and however, can invoke all the "read" methods.
     //Simply put, they cannot do an change on the users.
+    {
+      TO DO:
+
+      Permissions for GUESTS are:
+      1. UserController - Change Password Only
+      2. Author - GET
+      3. Books - GET
+    }
+
     AIsAuthorized := (AControllerQualifiedClassName <>
       'UserControllerU.TUserController') or
       (AContext.Request.HTTPMethodAsString = 'GET');

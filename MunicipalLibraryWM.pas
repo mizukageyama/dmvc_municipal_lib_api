@@ -52,28 +52,20 @@ begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
-      //default content-type
-      Config[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;
-      //default content charset
-      Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants.DEFAULT_CONTENT_CHARSET;
-      //unhandled actions are permitted?
+      Config[TMVCConfigKey.DefaultContentType] := TMVCConstants
+        .DEFAULT_CONTENT_TYPE;
+      Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants
+        .DEFAULT_CONTENT_CHARSET;
       Config[TMVCConfigKey.AllowUnhandledAction] := 'false';
-      //enables or not system controllers loading (available only from localhost requests)
       Config[TMVCConfigKey.LoadSystemControllers] := 'false';
-      //default view file extension
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
-      //view path
       Config[TMVCConfigKey.ViewPath] := 'templates';
-      //Max Record Count for automatic Entities CRUD
       Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
-      //Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-      //Enable X-Powered-By Header in response
       Config[TMVCConfigKey.ExposeXPoweredBy] := 'true';
-      // Max request size in bytes
-      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
+      Config[TMVCConfigKey.MaxRequestSize] :=
+        IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
     end);
 
   FMVC.AddController(TBookController);
@@ -82,7 +74,7 @@ begin
   FMVC.AddController(TLendingController);
   FMVC.AddController(TUserController);
 
-  lSwagInfo.Title := 'Sample Swagger API';
+  lSwagInfo.Title := 'Municipal Library API';
   lSwagInfo.Version := 'v1';
   lSwagInfo.TermsOfService := 'http://www.apache.org/licenses/LICENSE-2.0.txt';
   lSwagInfo.Description := 'Swagger Documentation Example';
@@ -118,43 +110,8 @@ begin
   );
 
   MVCCryptInit; //Initialize OpenSSL
-  // Analytics middleware generates a csv log, useful to do trafic analysis
-  //FMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));
-  
-  // The folder mapped as documentroot for TMVCStaticFilesMiddleware must exists!
-  //FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www')));
-  
-  // Trace middlewares produces a much detailed log for debug purposes
-  //FMVC.AddMiddleware(TMVCTraceMiddleware.Create);
-
-  // CORS middleware handles... well, CORS
-  FMVC.AddMiddleware(TMVCCORSMiddleware.Create);
-  
-  // Simplifies TMVCActiveRecord connection definition
-  //FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create('Municipal_Library_Connection'));
-  
-  // Compression middleware must be the last in the chain, just before the ETag, if present.
+  FMVC.AddMiddleware(TMVCCORSMiddleware.Create); //CORS Middleware
   FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
-  
-  // ETag middleware must be the latest in the chain
-  //FMVC.AddMiddleware(TMVCETagMiddleware.Create);
- 
-   
-
-  {
-  FMVC.OnWebContextCreate(
-    procedure(const Context: TWebContext) 
-    begin 
-      // Initialize services to make them accessibile from Context 
-      // Context.CustomIntfObject := TMyService.Create; 
-    end); 
-  
-  FMVC.OnWebContextDestroy(
-    procedure(const Context: TWebContext)
-    begin
-      //Cleanup services, if needed
-    end);
-  }
 end;
 
 procedure TMunicipalLibraryWebModule.WebModuleDestroy(Sender: TObject);

@@ -86,7 +86,7 @@ type
     [MVCTableField('SALT')]
     fSalt: string;
   public
-    function IsValid(const Password: string): boolean;
+    function IsValid(const APassword: string): boolean;
   end;
 
   {Customer Entity}
@@ -129,12 +129,14 @@ type
   TAuthor = class(TPersonEntityBase)
   private
     fBooks: TEnumerable<TBookRef>;
+    [MVCSwagProperty()]
     [MVCTableField('FULL_NAME')]
     fFullName: string;
     function GetBooks: TEnumerable<TBookRef>;
   public
     property FullName: string read fFullName write fFullName;
     {book is an enumerable of TBookRef, a lightweight version of TBook}
+    [MVCSwagJSONSchemaField('books', 'Author books', False, True)]
     property Books: TEnumerable<TBookRef> read GetBooks;
   end;
 
@@ -149,7 +151,6 @@ type
     fPubYear: NullableUInt16;
     [MVCTableField('TITLE')]
     fTitle: string;
-    procedure OnValidation(const EntityAction: TMVCEntityAction); override;
   public
     property AuthorID: Integer read fAuthorID write fAuthorID;
     property PubYear: NullableUInt16 read fPubYear write fPubYear;
@@ -305,19 +306,11 @@ begin
 end;
 
 
-{ TBook }
-
-procedure TBook.OnValidation(const EntityAction: TMVCEntityAction);
-begin
-  inherited;
-
-end;
-
 { TUserPasswordChecker }
 
-function TUserPasswordChecker.IsValid(const Password: string): boolean;
+function TUserPasswordChecker.IsValid(const APassword: string): boolean;
 begin
-  Result := GetPasswordHash(Self.fSalt, Password) = Self.fHashedPwd;
+  Result := GetPasswordHash(fSalt, APassword) = fHashedPwd;
 end;
 
 { TBookAndAuthor }

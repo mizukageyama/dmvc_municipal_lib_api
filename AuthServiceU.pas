@@ -4,10 +4,6 @@ interface
 
 uses CommonsU;
 
-type
-  TAuthService = class(TObject)
-  end;
-
 function GetPasswordHash(const Salt, Password: string): string;
 
 implementation

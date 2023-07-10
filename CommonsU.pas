@@ -5,7 +5,7 @@ interface
 uses
   MVCFramework.ActiveRecord, MVCFramework.Commons, EntitiesU, System.Math,
   MVCFramework.Serializer.Commons,  System.SysUtils, MVCFramework.Logger,
-  System.StrUtils, FireDAC.Stan.Error, System.Generics.Collections;
+  System.StrUtils, FireDAC.Stan.Error, System.Generics.Collections, System.JSON;
 
 type
   TSysConst = class(TObject)
@@ -26,9 +26,18 @@ type
   end;
 
 function AppendIfNotEmpty(const lQueryParams, toAppend: string): string;
-
+function AuthorBody: TJSONObject;
 
 implementation
+
+
+function AuthorBody: TJSONObject;
+var
+  JsonData: TJSONObject;
+begin
+  JsonData := TJSONObject.ParseJSONValue('{"key1": "value1", "key2": "value2"}') as TJSONObject;
+  Result := JsonData;
+end;
 
 function AppendIfNotEmpty(const lQueryParams, toAppend: string): string;
 var
